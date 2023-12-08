@@ -1,6 +1,6 @@
 import os
 import argparse
-from PIL import Image, UnidentifiedImageError  # Import the exception
+from PIL import Image, UnidentifiedImageError
 
 def make_even_dimensions(image_path: str, output_path: str) -> str | None:
     try:
