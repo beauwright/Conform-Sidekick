@@ -37,6 +37,9 @@ def get_all_odd_resolution_media(all_media):
         
         is_even = True
         for axis in resolution:
+            # If there are audio files in the MediaPool they return empty string for res
+            if axis == '':
+                continue
             if int(axis) % 2 != 0:
                 is_even = False
         
