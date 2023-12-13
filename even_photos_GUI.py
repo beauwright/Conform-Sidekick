@@ -41,7 +41,7 @@ class ResolvePrjCheckerGUI(QWidget):
     def start_converting_photos(self, checked) -> (bool, list|None):
         try:
             even_photos_resolve.convert_photos_in_media_pool()
-            print("hi")
+            print("Photos successfully converted")
         except ResolveConnectionFailed:
             print("Resolve be closed dog")
 
