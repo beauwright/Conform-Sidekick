@@ -1,5 +1,6 @@
 import os
 import argparse
+import uuid
 from PIL import Image, UnidentifiedImageError
 
 def make_even_dimensions(image_path: str, output_path: str) -> str | None:
@@ -70,7 +71,7 @@ def convert_single_photo(file_path: str) -> str | None:
     file_name, file_extension = os.path.splitext(os.path.basename(file_path))
 
     if file_extension.lower().endswith(('png', 'jpg', 'jpeg', 'tiff')):
-        output_path = os.path.join(directory, file_name + "_converted" + file_extension)
+        output_path = os.path.join(directory, file_name + "_converted_" + str(uuid.uuid4()) + file_extension)
         
         # Convert image to have even dimensions
         converted_file_path = make_even_dimensions(file_path, output_path)
