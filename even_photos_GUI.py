@@ -21,9 +21,6 @@ class ResolvePrjCheckerGUI(QWidget):
         self.setWindowTitle('Resolve Project Problem Checker')
         self.setGeometry(300, 300, 400, 200)
 
-        #self.statusBar = QStatusBar()
-        #self.setStatusBar(self.statusBar)
-
         # Create a layout
         layout = QVBoxLayout()
 
@@ -47,16 +44,15 @@ class ResolvePrjCheckerGUI(QWidget):
 
 
 
-
-        
-
-
-if __name__ == '__main__':
+def main():
     # If control-C is sent in terminal, pass to GUI to kill program
     signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     app = QApplication(sys.argv)
     window = ResolvePrjCheckerGUI()
     window.show()
-    sys.exit(app.exec())
-    
+    sys.exit(app.exec())       
+
+
+if __name__ == '__main__':
+    main()
