@@ -68,7 +68,7 @@ def convert_photos_in_media_pool() -> None:
         resolve = GetResolve()
         project_manager = resolve.GetProjectManager()
         project = project_manager.GetCurrentProject()
-    except (ResolveConnectionFailed, AttributeError):
+    except AttributeError:
         raise ResolveConnectionFailed
 
     # Find the odd res media
