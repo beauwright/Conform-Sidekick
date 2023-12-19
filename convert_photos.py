@@ -3,6 +3,9 @@ import argparse
 from typing import Tuple
 import uuid
 from PIL import Image, UnidentifiedImageError
+from pillow_heif import register_heif_opener
+
+register_heif_opener()
 
 def make_even_dimensions(image_path: str, output_path: str) -> str | None:
     try:
@@ -55,9 +58,8 @@ def convert_single_photo(file_path: str) -> str | None:
     directory = os.path.dirname(file_path)
     file_name, file_extension = os.path.splitext(os.path.basename(file_path))
 
-    if file_extension.lower().endswith(('png', 'jpg', 'jpeg', 'tiff')):
-        output_path = os.path.join(f"{directory}{file_name}_converted_{uuid.uuid4()}{file_extension}")
-
+    if file_extension.lower().endswith(('png', 'jpg', 'jpeg', 'tiff', 'heic')):
+        output_path = os.path.join(directory, f"{file_name}_converted_{uuid.uuid4()}{file_extension}")
 
         # Convert image to have even dimensions
         converted_file_path = make_even_dimensions(file_path, output_path)
