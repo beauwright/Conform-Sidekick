@@ -52,24 +52,36 @@ def replace_all_odd_resolution_media(all_odd_media) -> None:
     for entry in all_odd_media:
         # Try to convert every odd resolution file, replace the MediaPoolItem with the
         # converted one if succesful
-        converted_photo_filepath = convert_photos.convert_single_photo(entry)
-        if convert_photos is not None:
-            is_replaced = all_odd_media[entry].ReplaceClip(converted_photo_filepath)
-            if not is_replaced:
-                print("Failed to replace ", entry, 
-                      "with converted photo at ", converted_photo_filepath)
-        else:
-            print("Failed to replace ", entry, "because file conversion failed")
+        replace_single_odd_resolution_file(entry, all_odd_media[entry])
 
 
-def convert_photos_in_media_pool() -> None:
+def replace_single_odd_resolution_file(file_path, media_object) -> None:
+    # Get each key from the dict, which are the filepaths
+    converted_photo_filepath = convert_photos.convert_single_photo(file_path)
+    if convert_photos is not None:
+        is_replaced = media_object.ReplaceClip(converted_photo_filepath)
+        if not is_replaced:
+            print("Failed to replace ", file_path, 
+                    "with converted photo at ", converted_photo_filepath)
+    else:
+        print("Failed to replace ", file_path, "because file conversion failed")
+
+
+def get_resolve_current_project():
     # Open current Resolve project
     try:
         resolve = GetResolve()
         project_manager = resolve.GetProjectManager()
         project = project_manager.GetCurrentProject()
+        return project
     except AttributeError:
         raise ResolveConnectionFailed
+
+
+
+def convert_photos_in_media_pool() -> None:
+    # Open current Resolve project
+    project = get_resolve_current_project()
 
     # Find the odd res media
     media = get_all_media_paths(project)
