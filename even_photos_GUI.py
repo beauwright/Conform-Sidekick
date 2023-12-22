@@ -44,7 +44,10 @@ class ResolvePrjCheckerGUI(QWidget):
         self.setLayout(layout)
 
     def start_converting_photos(self, checked):
+        self.button.setDisabled(True)
+
         self.thread = ImageConverterThread()
+        self.thread.finished.connect(self.on_conversion_complete)
         self.thread.progress_updated.connect(self.update_progress)
         self.thread.conversion_failed.connect(self.log_failure)
         self.thread.connection_failed.connect(self.show_connection_error)
@@ -55,6 +58,9 @@ class ResolvePrjCheckerGUI(QWidget):
 
     def update_progress(self, value):
         self.progress_bar.setValue(value)
+
+    def on_conversion_complete(self):
+        self.button.setEnabled(True)
 
     def log_failure(self, name, file_path, error_message):
         # Add row to table with file_path and error_message
