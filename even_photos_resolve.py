@@ -7,14 +7,14 @@ def get_all_media_paths(project):
     # What Resolve calls bins in the GUI are called Folders in the API
     media_pool = project.GetMediaPool()
 
-    folders_to_expore = [media_pool.GetRootFolder()]
+    folders_to_explore = [media_pool.GetRootFolder()]
     all_folders = []
 
-    while len(folders_to_expore):
-        folder = folders_to_expore.pop(0)
+    while len(folders_to_explore):
+        folder = folders_to_explore.pop(0)
         all_folders.append(folder)
         for subfolder in folder.GetSubFolderList():
-            folders_to_expore.append(subfolder)
+            folders_to_explore.append(subfolder)
 
     all_media = []
 
@@ -51,7 +51,7 @@ def replace_all_odd_resolution_media(all_odd_media) -> None:
     # Get each key from the dict, which are the filepaths
     for entry in all_odd_media:
         # Try to convert every odd resolution file, replace the MediaPoolItem with the
-        # converted one if succesful
+        # converted one if successful
         replace_single_odd_resolution_file(entry, all_odd_media[entry])
 
 
