@@ -3,7 +3,7 @@ import sys
 import convert_photos
 
 def get_all_media_paths(project):
-    # Iterate through the mediapool to get every piece of media from the root folder
+    # Iterate through the MediaPool to get every piece of media from the root folder
     # What Resolve calls bins in the GUI are called Folders in the API
     media_pool = project.GetMediaPool()
 
@@ -31,7 +31,7 @@ def get_all_odd_resolution_media(all_media):
     resolve_media_path_and_object = {}
     for media in all_media:
         resolution = media.GetClipProperty("Resolution")
-        # Resolve outputs resolution as a string with the two values seperated by
+        # Resolve outputs resolution as a string with the two values separated by
         # an 'x', so we need to split by 'x' and then typecast as int
         resolution = resolution.split("x")
         
