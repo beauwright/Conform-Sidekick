@@ -1,15 +1,13 @@
 import sys
 import typing
-from PyQt6 import QtCore
-from PyQt6.QtGui import *
-from PyQt6.QtCore import *
-from PyQt6.QtWidgets import *
+from PySide6 import QtCore
+from PySide6.QtGui import *
+from PySide6.QtCore import *
+from PySide6.QtWidgets import *
 import even_photos_resolve
 from python_get_resolve import ResolveConnectionFailed
 
 import signal
-
-from PyQt6.QtWidgets import QWidget
 
 class ResolvePrjCheckerGUI(QWidget):
     def __init__(self):
@@ -39,24 +37,21 @@ class ResolvePrjCheckerGUI(QWidget):
         # Table for failed conversions
         self.failed_table = QTableWidget(self)
         self.failed_table.setColumnCount(3)  # Filepath and Error Message
-        self.failed_table.setHorizontalHeaderLabels(["Name", "File Path", "Error Message"])
+        self.failed_table.setHorizontalHeaderLabels(["Name", "Status", "Information"])
         layout.addWidget(self.failed_table)
 
         # Set the layout for the main window
         self.setLayout(layout)
 
-    def start_converting_photos(self, checked) -> (bool, list|None):
-        try:
-            even_photos_resolve.convert_photos_in_media_pool()
-            print("Photos successfully converted")
-        except ResolveConnectionFailed:
-            print("Resolve be closed dog")
-
     def start_converting_photos(self, checked):
         self.thread = ImageConverterThread()
         self.thread.progress_updated.connect(self.update_progress)
         self.thread.conversion_failed.connect(self.log_failure)
+        self.thread.connection_failed.connect(self.show_connection_error)
         self.thread.start()
+
+    def show_connection_error(self, message):
+        QMessageBox.critical(self, "Connection Error", message)
 
     def update_progress(self, value):
         self.progress_bar.setValue(value)
@@ -81,27 +76,35 @@ class ResolvePrjCheckerGUI(QWidget):
 
 
 class ImageConverterThread(QThread):
-    progress_updated = pyqtSignal(int)
-    conversion_failed = pyqtSignal(str, str, str)
+    progress_updated = Signal(int)
+    conversion_failed = Signal(str, str, str)
+    connection_failed = Signal(str)
         
 
     def run(self):
-        # Open current Resolve project
-        project = even_photos_resolve.get_resolve_current_project()
+        try:
+            # Open current Resolve project
+            project = even_photos_resolve.get_resolve_current_project()
 
 
-        # Find the odd res media
-        media = even_photos_resolve.get_all_media_paths(project)
-        odd_res_media = even_photos_resolve.get_all_odd_resolution_media(media)
-        
-        count = 0
-        # Convert the photos
-        for entry in odd_res_media:
-            # Try to convert every odd resolution file, replace the MediaPoolItem with the
-            # converted one if succesful
-            even_photos_resolve.replace_single_odd_resolution_file(entry, odd_res_media[entry])
-            count += 1
-            self.progress_updated.emit(count // len(odd_res_media)*100)
+            # Find the odd res media
+            media = even_photos_resolve.get_all_media_paths(project)
+            odd_res_media = even_photos_resolve.get_all_odd_resolution_media(media)
+            
+            if (len(odd_res_media) == 0):
+                self.connection_failed.emit("No images with odd resolutions found in the current project.")
+
+
+            count = 0
+            # Convert the photos
+            for entry in odd_res_media:
+                # Try to convert every odd resolution file, replace the MediaPoolItem with the
+                # converted one if successful
+                even_photos_resolve.replace_single_odd_resolution_file(entry, odd_res_media[entry])
+                count += 1
+                self.progress_updated.emit(int((count / len(odd_res_media)) * 100))
+        except ResolveConnectionFailed:
+            self.connection_failed.emit("Couldn't connect to Resolve. Please ensure DaVinci Resolve is open and scripting is enabled in DaVinci Resolve's preferences.")
 
 
 
