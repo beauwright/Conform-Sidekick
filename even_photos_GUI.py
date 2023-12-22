@@ -118,7 +118,7 @@ def main():
     # If control-C is sent in terminal, pass to GUI to kill program
     signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-    app = QApplication(sys.argv)
+    app = QApplication([])
     window = ResolvePrjCheckerGUI()
     window.show()
     sys.exit(app.exec())       
