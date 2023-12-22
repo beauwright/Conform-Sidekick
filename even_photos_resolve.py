@@ -55,16 +55,16 @@ def replace_all_odd_resolution_media(all_odd_media) -> None:
         replace_single_odd_resolution_file(entry, all_odd_media[entry])
 
 
-def replace_single_odd_resolution_file(file_path, media_object) -> None:
+def replace_single_odd_resolution_file(file_path, media_object):
     # Get each key from the dict, which are the filepaths
     converted_photo_filepath = convert_photos.convert_single_photo(file_path)
     if convert_photos is not None:
         is_replaced = media_object.ReplaceClip(converted_photo_filepath)
         if not is_replaced:
-            print("Failed to replace ", file_path, 
-                    "with converted photo at ", converted_photo_filepath)
+            return{"success": False, "file_path": file_path, "message": f"Failed to replace {file_path} with converted photo at {converted_photo_filepath}."}
+        return{"success": True, "file_path": file_path, "message": f"Converted photo located at {converted_photo_filepath}."}
     else:
-        print("Failed to replace ", file_path, "because file conversion failed")
+        return{"success": False, "file_path": file_path, "message": f"Failed to replace {file_path} because file conversion failed."}
 
 
 def get_resolve_current_project():
