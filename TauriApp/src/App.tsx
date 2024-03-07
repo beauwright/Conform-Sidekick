@@ -8,6 +8,8 @@ import {
 import EvenResPhotos from "./EvenResPhotos/EvenResPhotos";
 import Toolbar from "./components/Toolbar";
 import { useEffect, useState } from "react";
+import { Separator } from "./components/ui/separator";
+import { platform } from "@tauri-apps/api/os";
 
 // This component needs to be a child of a Router component to work
 function NavigateOnViewChange({ view }: { view: string }) {
@@ -24,6 +26,7 @@ function NavigateOnViewChange({ view }: { view: string }) {
   // Render nothing, as this component is only for redirecting when the view is changed by the Toolbar
   return null;
 }
+const platformName = await platform();
 
 export function App() {
   const [view, setView] = useState<string>("photos");
@@ -33,10 +36,23 @@ export function App() {
 
   return (
     <div className="min-w-screen min-h-screen bg-white dark:bg-slate-950">
+        {platformName === "darwin" ? (
+          <div id="macOS title bar">
+            <div
+              data-tauri-drag-region
+              className="bg-slate-50 py-3 dark:bg-slate-900"
+            ></div>
+            <Separator className="bg-slate-100 dark:bg-slate-800" />
+          </div>
+        ) : (
+          <div />
+        )}
+
       <Toolbar defaultValue={view} onViewChange={handleViewChange} />
       <Router>
         <NavigateOnViewChange view={view} />
         <Routes>
+          <Route path="/" element={<></>} />
           <Route path="/photos" element={<EvenResPhotos />} />
           <Route path="/interlaced" element={<h1>Placeholder</h1>} />
         </Routes>

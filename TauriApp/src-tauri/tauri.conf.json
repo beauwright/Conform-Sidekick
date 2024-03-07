@@ -12,9 +12,35 @@
   "tauri": {
     "allowlist": {
       "all": false,
+      "os": {
+        "all": true
+      },
       "shell": {
         "all": false,
-        "open": true
+        "open": true,
+        "sidecar": true,
+        "scope": [
+          { 
+            "name": "../../PythonInterface/dist/even_photos_resolve",
+             "sidecar": true ,
+             "args": [
+              "projectAndTimeline"
+            ]
+
+          }
+        ]
+      },
+      "window": {
+        "startDragging": true
+      },
+      "http": {
+        "request": true,
+        "scope": ["ws://localhost:5000/*", "http://localhost:5000/*"]
+      },
+      "fs": {
+        "readFile": true,
+        "removeFile": true,
+        "scope": ["**"]
       }
     },
     "windows": [
@@ -25,7 +51,10 @@
         "height": 600,
         "minWidth": 600,
         "minHeight": 400,
-        "titleBarStyle": "Overlay"
+        "titleBarStyle": "Overlay",
+        "fullscreen": false,
+        "resizable": true,
+        "decorations": true
       }
     ],
     "security": {
@@ -41,6 +70,9 @@
         "icons/128x128@2x.png",
         "icons/icon.icns",
         "icons/icon.ico"
+      ],
+      "externalBin": [
+        "../../PythonInterface/dist/even_photos_resolve"
       ]
     }
   }

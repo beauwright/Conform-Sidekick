@@ -1,7 +1,13 @@
-from python_get_resolve import GetResolve, ResolveConnectionFailed
+import argparse
+import json
+import tempfile
 import sys
+import os
+import time
+from python_get_resolve import GetResolve, ResolveConnectionFailed
 import convert_photos
 
+media = {}
 def get_all_media_paths(project):
     # Iterate through the MediaPool to get every piece of media from the root folder
     # What Resolve calls bins in the GUI are called Folders in the API
@@ -68,7 +74,7 @@ def replace_single_odd_resolution_file(file_path, media_object):
 
 
 def get_resolve_current_project():
-    # Open current Resolve project
+    # Get current Resolve project
     try:
         resolve = GetResolve()
         project_manager = resolve.GetProjectManager()
@@ -77,7 +83,18 @@ def get_resolve_current_project():
     except AttributeError:
         raise ResolveConnectionFailed
 
-
+def get_resolve_current_timeline():
+    # Get current Resolve timeline
+    try:
+        resolve = GetResolve()
+        project_manager = resolve.GetProjectManager()
+        project = project_manager.GetCurrentProject()
+        timeline = project.GetCurrentTimeline()
+        return timeline
+    except AttributeError:
+        raise ResolveConnectionFailed
+    
+    
 
 def convert_photos_in_media_pool() -> None:
     # Open current Resolve project
@@ -87,3 +104,55 @@ def convert_photos_in_media_pool() -> None:
     media = get_all_media_paths(project)
     odd_res_media = get_all_odd_resolution_media(media)
     replace_all_odd_resolution_media(odd_res_media)
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('operation', type=str, choices=['projectAndTimeline'],
+                        help='Operation to perform')
+    return parser.parse_args()
+
+def projectAndTimelineToJSON():
+    try:
+        project = get_resolve_current_project()
+        timeline = get_resolve_current_timeline()
+        if project is None:
+            raise ValueError("Unable to connect to DaVinci Resolve")
+        timelineName = "" if timeline is None else timeline.GetName()
+
+        # Standard JSON format for output
+        output_data = {
+            "projectName": project.GetName(),
+            "timelineName": timelineName
+        }
+        
+        outputJSON(output_data=output_data)
+
+    except Exception as e:
+        sys.stderr.write(str(e))
+        exit()
+
+def outputJSON(output_data: str):
+    try:
+        # Ensure the ConformSidekick subfolder exists
+        temp_dir = tempfile.gettempdir()  # Get the system temporary directory
+        conform_sidekick_dir = os.path.join(temp_dir, 'ConformSidekick')  # Path to your specific temp dir
+        os.makedirs(conform_sidekick_dir, exist_ok=True)  # Create the directory if it does not exist
+
+        # Create a temp file in the specified subdirectory
+        tempfile_name = ""
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as temp_file:
+            json.dump(output_data, temp_file, indent=4)  # Make the JSON output pretty
+            tempfile_name = os.path.basename(temp_file.name)
+        print(tempfile_name)  # Print the path to the temp file
+    except Exception as e:
+        sys.stderr.write(str(e))
+        exit()
+
+def main():
+    args = parse_arguments()
+
+    if args.operation == 'projectAndTimeline':
+        projectAndTimelineToJSON()
+    
+if __name__ == "__main__":
+    main()
