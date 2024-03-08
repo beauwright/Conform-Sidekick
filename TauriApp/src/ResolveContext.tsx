@@ -54,14 +54,17 @@ export const ResolveProvider = ({ children }: ResolveProviderProps) => {
 
         if (projectAndTimeline.timelineName) {
           setCurrentTimeline(projectAndTimeline.timelineName);
+        } else {
+          setCurrentTimeline("");
         }
       } catch (error) {
+        setCurrentProject("");
         console.log(error);
       }
     };
 
     fetchProjectAndTimeline(); // Initial fetch
-    intervalId = setInterval(fetchProjectAndTimeline, 5000); // Fetch every 5 seconds
+    intervalId = setInterval(fetchProjectAndTimeline, 4000); // Fetch every 4 seconds
 
     return () => {
       if (intervalId) {

@@ -10,6 +10,8 @@ import Toolbar from "./components/Toolbar";
 import { useEffect, useState } from "react";
 import { Separator } from "./components/ui/separator";
 import { platform } from "@tauri-apps/api/os";
+import ConnectingStatus from "./ResolveConnectionStatus";
+import { useWebSocket } from "./ResolveContext";
 
 // This component needs to be a child of a Router component to work
 function NavigateOnViewChange({ view }: { view: string }) {
@@ -33,30 +35,39 @@ export function App() {
   const handleViewChange = (newView: string) => {
     setView(newView);
   };
+  const context = useWebSocket();
+  const { currentProject, currentTimeline } = context || {};
 
   return (
-    <div className="min-w-screen min-h-screen bg-white dark:bg-slate-950">
-        {platformName === "darwin" ? (
-          <div id="macOS title bar">
-            <div
-              data-tauri-drag-region
-              className="bg-slate-50 py-3 dark:bg-slate-900"
-            ></div>
-            <Separator className="bg-slate-100 dark:bg-slate-800" />
-          </div>
-        ) : (
-          <div />
-        )}
-
-      <Toolbar defaultValue={view} onViewChange={handleViewChange} />
-      <Router>
-        <NavigateOnViewChange view={view} />
-        <Routes>
-          <Route path="/" element={<></>} />
-          <Route path="/photos" element={<EvenResPhotos />} />
-          <Route path="/interlaced" element={<h1>Placeholder</h1>} />
-        </Routes>
-      </Router>
+    <div className="min-w-screen min-h-screen bg-white dark:bg-slate-950 select-none cursor-default">
+      {platformName === "darwin" ? (
+        <div id="macOS title bar">
+          <div
+            data-tauri-drag-region
+            className="bg-slate-50 py-3 dark:bg-slate-900"
+          ></div>
+          <Separator className="bg-slate-100 dark:bg-slate-800" />
+        </div>
+      ) : (
+        <div />
+      )}
+      {currentProject === "" ? (
+        <div className="mx-auto my-auto justify-center p-40">
+          <ConnectingStatus />
+        </div>
+      ) : (
+        <>
+          <Toolbar defaultValue={view} onViewChange={handleViewChange} />
+          <Router>
+            <NavigateOnViewChange view={view} />
+            <Routes>
+              <Route path="/" element={<></>} />
+              <Route path="/photos" element={<EvenResPhotos />} />
+              <Route path="/interlaced" element={<h1 className="dark:text-white">Placeholder</h1>} />
+            </Routes>
+          </Router>
+        </>
+      )}
     </div>
   );
 }
