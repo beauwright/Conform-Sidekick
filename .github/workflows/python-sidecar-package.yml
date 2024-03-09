@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ['windows-latest', 'macos-12', 'flyci-macos-large-latest-m2', 'ubuntu-latest']
+        os: ['windows-latest', 'macos-12', 'flyci-macos-large-latest-m2']
 
     steps:
       - uses: actions/checkout@v4
@@ -72,7 +72,7 @@ jobs:
          npm install
 
       - name: Build the app
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@dev
         env:
            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
