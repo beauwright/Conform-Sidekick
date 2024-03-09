@@ -24,7 +24,7 @@ function NavigateOnViewChange({ view }: { view: string }) {
       navigate("/interlaced");
     }
   }, [view, navigate]);
-
+  
   // Render nothing, as this component is only for redirecting when the view is changed by the Toolbar
   return null;
 }
@@ -36,10 +36,11 @@ export function App() {
     setView(newView);
   };
   const context = useWebSocket();
-  const { currentProject, currentTimeline } = context || {};
+  const { currentProject } = context || {};
 
   return (
     <div className="min-w-screen min-h-screen bg-white dark:bg-slate-950 select-none cursor-default">
+      {/*render top bar with drag region on macOS, nothing for windows/linux*/}
       {platformName === "darwin" ? (
         <div id="macOS title bar">
           <div
@@ -51,6 +52,7 @@ export function App() {
       ) : (
         <div />
       )}
+      {/*render loading screen or app depending on connection*/}
       {currentProject === "" ? (
         <div className="mx-auto my-auto justify-center p-40">
           <ConnectingStatus />
@@ -63,7 +65,10 @@ export function App() {
             <Routes>
               <Route path="/" element={<></>} />
               <Route path="/photos" element={<EvenResPhotos />} />
-              <Route path="/interlaced" element={<h1 className="dark:text-white">Placeholder</h1>} />
+              <Route
+                path="/interlaced"
+                element={<h1 className="dark:text-white">Placeholder</h1>}
+              />
             </Routes>
           </Router>
         </>

@@ -12,13 +12,13 @@ async function getData(): Promise<Media[]> {
       displayName: "File",
       resolution: "101x2000",
       binPath: "bin1/file.mov",
-      timecode: "1:00:00:00"
+      timecode: ["1:00:00:00", "1:00:00:30"]
     },
     {
       displayName: "File 2",
       resolution: "1001x2000",
       binPath: "bin1/file2.mov",
-      timecode: "None"
+      timecode: []
     },
   ];
 }
@@ -50,7 +50,7 @@ const ProjectInfo:React.FC<ProjectInfoProps> = ({ setShowDataTable }) => {
         </h2>
       </div>
       <div className="flex justify-center ">
-        <div className="flex w-2/3 justify-around bg-slate-50/60 dark:bg-slate-800 rounded dark:text-white">
+        <div className="flex m-2 w-1/2 justify-around bg-slate-50/60 dark:bg-slate-800 rounded dark:text-white">
           <RadioGroup
             defaultValue="project"
             value={projOrTimelineSelected}

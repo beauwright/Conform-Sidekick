@@ -6,7 +6,7 @@ import {
   ReactNode,
 } from "react";
 import { Command } from "@tauri-apps/api/shell";
-import { readTextFile, removeFile, BaseDirectory, readDir , writeTextFile} from "@tauri-apps/api/fs";
+import { readTextFile, removeFile, BaseDirectory } from "@tauri-apps/api/fs";
 //import { Convert as ConvertOddPhotos, OddResMedia } from "./jsonParse/OddPhotos";
 import { Convert as ConvertResolveConnections } from "./jsonParse/ResolveConnections";
 
@@ -34,20 +34,21 @@ export const ResolveProvider = ({ children }: ResolveProviderProps) => {
     let intervalId: ReturnType<typeof setInterval> | null = null;
     const fetchProjectAndTimeline = async () => {
       try {
-        console.log("calling python")
+        //console.log("calling python")
+        //console.log("before python call:", Date.now().toString())
         const command = Command.sidecar(
           "../../PythonInterface/dist/even_photos_resolve",
           "projectAndTimeline"
         );
         const output = await command.execute();
 
-        console.log(output.stdout);
-        console.log(output.stderr);
+        //console.log("after python call:", output.stdout, Date.now().toString());
+        //console.log(output.stderr);
         const json = await readTextFile(output.stdout.replace("\n", ""), {dir: BaseDirectory.Temp});
-        console.log("json contents:", json);
+        //console.log("json contents:", json);
 
         await removeFile(output.stdout.replace("\n", ""), {dir: BaseDirectory.Temp});
-        
+        //console.log("after delete", Date.now().toString())
         const projectAndTimeline =
           ConvertResolveConnections.toResolveConnection(json);
         setCurrentProject(projectAndTimeline.projectName);
@@ -61,6 +62,7 @@ export const ResolveProvider = ({ children }: ResolveProviderProps) => {
         setCurrentProject("");
         console.log(error);
       }
+      console.log("after assignments to state", Date.now().toString())
     };
 
     fetchProjectAndTimeline(); // Initial fetch

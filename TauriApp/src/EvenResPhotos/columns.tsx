@@ -11,7 +11,7 @@ export type Media = {
   displayName: string;
   binPath: string;
   resolution: string;
-  timecode: string;
+  timecode: string[];
 };
 
 export const columns: ColumnDef<Media>[] = [
@@ -51,12 +51,24 @@ export const columns: ColumnDef<Media>[] = [
   },
   {
     accessorKey: "timecode",
-    header: "Open Timeline Timecode",
+    header: "Current Timeline Timecode(s)",
     enableHiding: false,
     cell: ({ row }) => {
-      const timecode = row.original;
+      const timecodes = row.original.timecode;
 
-      return <Button disabled={row.original.timecode === "None"}>{timecode.timecode}</Button>;
+      // Check if the timecodes list is empty and return a disabled button if true
+      if (timecodes.length === 0) {
+        return <Button disabled={true}>No Timecode</Button>;
+      } else {
+        // Map each timecode to a Button component
+        return (
+          <>
+            {timecodes.map((tc, index) => (
+              <Button key={index} className="my-1 mr-1">{tc}</Button>
+            ))}
+          </>
+        );
+      }
     },
   },
   {

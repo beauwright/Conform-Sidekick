@@ -31,7 +31,8 @@
         ]
       },
       "window": {
-        "startDragging": true
+        "startDragging": true,
+        "show": true
       },
       "http": {
         "request": true,
@@ -54,7 +55,8 @@
         "titleBarStyle": "Overlay",
         "fullscreen": false,
         "resizable": true,
-        "decorations": true
+        "decorations": true,
+        "visible": false
       }
     ],
     "security": {
@@ -63,7 +65,7 @@
     "bundle": {
       "active": true,
       "targets": "all",
-      "identifier": "com.tauri.dev",
+      "identifier": "com.color-tools",
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",

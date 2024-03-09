@@ -1,5 +1,4 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "./ui/hover-card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InfoCircledIcon } from "@radix-ui/react-icons";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 function Toolbar({
