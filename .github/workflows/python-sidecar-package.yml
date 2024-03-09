@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ['windows-latest', 'ubuntu-latest', 'macos-latest', 'macos-14']
+        os: ['windows-latest', 'macos-latest', 'macos-14']
 
     steps:
       - uses: actions/checkout@v4
@@ -68,5 +68,5 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: Tauri Binaries
-          path: ./TauriApp/src-tauri/target/release/
+          path: ./TauriApp/src-tauri/target/release/bundle
           if-no-files-found: error
