@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ['windows-latest', 'macos-12', 'flyci-macos-14-xlarge-m2']
+        os: ['windows-latest', 'macos-12', 'flyci-macos-large-latest-m2']
 
     steps:
       - uses: actions/checkout@v4
@@ -31,7 +31,7 @@ jobs:
             New-Item -Path './PythonInterface/dist' -ItemType Directory
             cd ./PythonInterface/
             pyinstaller even_photos_resolve.py --onefile --name even_photos_resolve-x86_64-apple-darwin
-          } elseif ($os -eq "flyci-macos-14-xlarge-m2") {
+          } elseif ($os -eq "flyci-macos-large-latest-m2") {
             New-Item -Path './PythonInterface/dist' -ItemType Directory
             cd ./PythonInterface/
             pyinstaller even_photos_resolve.py --onefile --name even_photos_resolve-aarch64-apple-darwin
