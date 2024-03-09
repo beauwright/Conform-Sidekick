@@ -20,12 +20,16 @@ jobs:
         run: |
           $os = "${{ matrix.os }}"  # Set the operating system variable from matrix
           if ($os -eq "windows-latest") {
+            New-Item -Path './PythonInterface/dist' -ItemType Directory
             pyinstaller ./PythonInterface/even_photos_resolve.py --onefile --name ./PythonInterface/dist/even_photos_resolve-x86_64-pc-windows-msvc.exe
           } elseif ($os -eq "ubuntu-latest") {
+            New-Item -Path './PythonInterface/dist' -ItemType Directory
             pyinstaller ./PythonInterface/even_photos_resolve.py --onefile --name ./PythonInterface/dist/even_photos_resolve-x86_64-unknown-linux-gnu
           } elseif ($os -eq "macos-latest") {
+            New-Item -Path './PythonInterface/dist' -ItemType Directory
             pyinstaller ./PythonInterface/even_photos_resolve.py --onefile --name ./PythonInterface/dist/even_photos_resolve-x86_64-apple-darwin
           } elseif ($os -eq "macos-14") {
+            New-Item -Path './PythonInterface/dist' -ItemType Directory
             pyinstaller ./PythonInterface/even_photos_resolve.py --onefile --name ./PythonInterface/dist/even_photos_resolve-aarch64-apple-darwin
           }
         shell: pwsh
