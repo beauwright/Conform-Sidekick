@@ -28,3 +28,9 @@ jobs:
             pyinstaller ./PythonInterface/even_photos_resolve.py --onefile --name even_photos_resolve-aarch64-apple-darwin
           }
         shell: pwsh
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: Executables
+          path: dist/
