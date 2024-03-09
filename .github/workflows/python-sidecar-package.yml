@@ -27,11 +27,11 @@ jobs:
             New-Item -Path './PythonInterface/dist' -ItemType Directory
             cd ./PythonInterface/
             pyinstaller even_photos_resolve.py --onefile --name even_photos_resolve-x86_64-unknown-linux-gnu
-          } elseif ($os -eq "macos-latest") {
+          } elseif ($os -eq "macos-12") {
             New-Item -Path './PythonInterface/dist' -ItemType Directory
             cd ./PythonInterface/
             pyinstaller even_photos_resolve.py --onefile --name even_photos_resolve-x86_64-apple-darwin
-          } elseif ($os -eq "macos-14") {
+          } elseif ($os -eq "macos-13-arm64") {
             New-Item -Path './PythonInterface/dist' -ItemType Directory
             cd ./PythonInterface/
             pyinstaller even_photos_resolve.py --onefile --name even_photos_resolve-aarch64-apple-darwin
