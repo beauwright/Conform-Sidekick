@@ -55,13 +55,13 @@ jobs:
       - name: Install Tauri dependencies
         run: |
          cd TauriApp
-         npm tauri build # Or npm run tauri build
+         npm install
 
       # Build Tauri application
       - name: Build Tauri App
         run: |
           cd TauriApp
-          npm tauri build # Or npm run tauri build
+          npm run tauri build # Or npm run tauri build
 
       # Upload Tauri Artifacts
       - name: Upload Tauri Artifacts
