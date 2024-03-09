@@ -18,13 +18,14 @@ jobs:
       - run: pip install -r ./PythonInterface/requirements.txt pyinstaller
       - name: Build with PyInstaller
         run: |
-          if ($env:matrix_os -eq "windows-latest") {
+          $os = "${{ matrix.os }}"  # Set the operating system variable from matrix
+          if ($os -eq "windows-latest") {
             pyinstaller ./PythonInterface/even_photos_resolve.py --onefile --name even_photos_resolve-x86_64-pc-windows-msvc.exe
-          } elseif ($env:matrix_os -eq "ubuntu-latest") {
+          } elseif ($os -eq "ubuntu-latest") {
             pyinstaller ./PythonInterface/even_photos_resolve.py --onefile --name even_photos_resolve-x86_64-unknown-linux-gnu
-          } elseif ($env:matrix_os -eq "macos-latest") {
+          } elseif ($os -eq "macos-latest") {
             pyinstaller ./PythonInterface/even_photos_resolve.py --onefile --name even_photos_resolve-x86_64-apple-darwin
-          } elseif ($env:matrix_os -eq "macos-14") {
+          } elseif ($os -eq "macos-14") {
             pyinstaller ./PythonInterface/even_photos_resolve.py --onefile --name even_photos_resolve-aarch64-apple-darwin
           }
         shell: pwsh
