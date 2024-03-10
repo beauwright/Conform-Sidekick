@@ -12,10 +12,9 @@ def load_dynamic(module_name, file_path):
 
     module = None
     spec = None
-    loader = importlib.machinery.ExtensionFileLoader(module_name, file_path)
-    spec = importlib.util.spec_from_loader(module_name, loader)
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
     module = importlib.util.module_from_spec(spec)
-    loader.exec_module(module)
+    spec.loader.exec_module(module)
     return module
         
 def GetResolve():
