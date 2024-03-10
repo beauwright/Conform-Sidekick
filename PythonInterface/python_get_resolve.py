@@ -6,6 +6,7 @@ This file serves to return a DaVinci Resolve object
 import sys
 import os
 import sys
+
 def load_dynamic(module_name, file_path):
     import importlib.machinery
     import importlib.util
@@ -43,12 +44,11 @@ def GetResolve():
 
             script_module = load_dynamic("fusionscript", path + "fusionscript" + ext)
 
-    if script_module:
-        sys.modules[__name__] = script_module
-    else:
+    try:
+        return script_module.scriptapp("Resolve")
+    except:
         raise ImportError("Could not locate module dependencies")
     
-    return script_module.scriptapp("Resolve")
 
 class ResolveConnectionFailed(Exception):
     pass
