@@ -3,49 +3,53 @@
 """
 This file serves to return a DaVinci Resolve object
 """
-
 import sys
+import os
+import sys
+def load_dynamic(module_name, file_path):
+    import importlib.machinery
+    import importlib.util
 
-def load_source(module_name, file_path):
-    if sys.version_info[0] >= 3 and sys.version_info[1] >= 5:
-        import importlib.util
-
-        module = None
-        spec = importlib.util.spec_from_file_location(module_name, file_path)
-        if spec:
-            module = importlib.util.module_from_spec(spec)
-        if module:
-            sys.modules[module_name] = module
-            spec.loader.exec_module(module)
-        return module
-    else:
-        import imp
-        return imp.load_source(module_name, file_path)
-
-
+    module = None
+    spec = None
+    loader = importlib.machinery.ExtensionFileLoader(module_name, file_path)
+    spec = importlib.util.spec_from_loader(module_name, loader)
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    return module
+        
 def GetResolve():
+    script_module = None
     try:
-        # The PYTHONPATH needs to be set correctly for this import statement to work.
-        # An alternative is to import the DaVinciResolveScript by specifying absolute path (see ExceptionHandler logic)
-        import DaVinciResolveScript as bmd
+        import fusionscript as script_module
     except ImportError:
-        if sys.platform.startswith("darwin"):
-            expectedPath = "/Library/Application Support/Blackmagic Design/DaVinci Resolve/Developer/Scripting/Modules/"
-        elif sys.platform.startswith("win") or sys.platform.startswith("cygwin"):
-            import os
-            expectedPath = os.getenv('PROGRAMDATA') + "\\Blackmagic Design\\DaVinci Resolve\\Support\\Developer\\Scripting\\Modules\\"
-        elif sys.platform.startswith("linux"):
-            expectedPath = "/opt/resolve/Developer/Scripting/Modules/"
+        # Look for installer based environment variables:
+        lib_path = os.getenv("RESOLVE_SCRIPT_LIB")
+        if lib_path:
+            try:
+                script_module = load_dynamic("fusionscript", lib_path)
+            except ImportError:
+                pass
+        if not script_module:
+            # Look for default install locations:
+            path = ""
+            ext = ".so"
+            if sys.platform.startswith("darwin"):
+                path = "/Applications/DaVinci Resolve/DaVinci Resolve.app/Contents/Libraries/Fusion/"
+            elif sys.platform.startswith("win") or sys.platform.startswith("cygwin"):
+                ext = ".dll"
+                path = "C:\\Program Files\\Blackmagic Design\\DaVinci Resolve\\"
+            elif sys.platform.startswith("linux"):
+                path = "/opt/resolve/libs/Fusion/"
 
-        # check if the default path has it...
-        #print("Unable to find module DaVinciResolveScript from $PYTHONPATH - trying default locations")
-        try:
-            load_source('DaVinciResolveScript', expectedPath + "DaVinciResolveScript.py")
-            import DaVinciResolveScript as bmd
-        except Exception as ex:
-            raise ResolveConnectionFailed
+            script_module = load_dynamic("fusionscript", path + "fusionscript" + ext)
 
-    return bmd.scriptapp("Resolve")
+    if script_module:
+        sys.modules[__name__] = script_module
+    else:
+        raise ImportError("Could not locate module dependencies")
+    
+    return script_module.scriptapp("Resolve")
 
 class ResolveConnectionFailed(Exception):
     pass
