@@ -44,10 +44,13 @@ export const ResolveProvider = ({ children }: ResolveProviderProps) => {
 
         //console.log("after python call:", output.stdout, Date.now().toString());
         //console.log(output.stderr);
-        const json = await readTextFile(output.stdout.replace("\n", ""), {dir: BaseDirectory.Temp});
+        let outputStr = output.stdout.replace("\r\n", "")
+        outputStr.replace("\n", "")
+
+        const json = await readTextFile(outputStr, {dir: BaseDirectory.Temp});
         //console.log("json contents:", json);
 
-        await removeFile(output.stdout.replace("\n", ""), {dir: BaseDirectory.Temp});
+        await removeFile(outputStr, {dir: BaseDirectory.Temp});
         //console.log("after delete", Date.now().toString())
         const projectAndTimeline =
           ConvertResolveConnections.toResolveConnection(json);
