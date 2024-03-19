@@ -4,7 +4,7 @@ import tempfile
 import sys
 import os
 import time
-from python_get_resolve import GetResolve, ResolveConnectionFailed
+from get_resolve import GetResolve, ResolveConnectionFailed
 import convert_photos
 
 media = {}
