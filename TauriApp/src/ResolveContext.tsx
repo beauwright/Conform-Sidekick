@@ -9,6 +9,7 @@ import { Command } from "@tauri-apps/api/shell";
 import { readTextFile, removeFile, BaseDirectory } from "@tauri-apps/api/fs";
 //import { Convert as ConvertOddPhotos, OddResMedia } from "./jsonParse/OddPhotos";
 import { Convert as ConvertResolveConnections } from "./jsonParse/ResolveConnections";
+import { Convert as ConvertTempOutput } from "./jsonParse/TempOutput"
 
 interface ResolveContextType {
   currentProject: string;
@@ -42,15 +43,14 @@ export const ResolveProvider = ({ children }: ResolveProviderProps) => {
         );
         const output = await command.execute();
 
-        //console.log("after python call:", output.stdout, Date.now().toString());
+        console.log("after python call:", output.stdout, Date.now().toString());
         //console.log(output.stderr);
-        let outputStr = output.stdout.replace("\r\n", "")
-        outputStr.replace("\n", "")
-
-        const json = await readTextFile(outputStr, {dir: BaseDirectory.Temp});
+        const tempOutput = ConvertTempOutput.toTempOutput(output.stdout);
+        console.log(tempOutput.path);
+        const json = await readTextFile(tempOutput.path, {dir: BaseDirectory.Temp});
         //console.log("json contents:", json);
 
-        await removeFile(outputStr, {dir: BaseDirectory.Temp});
+        await removeFile(tempOutput.path, {dir: BaseDirectory.Temp});
         //console.log("after delete", Date.now().toString())
         const projectAndTimeline =
           ConvertResolveConnections.toResolveConnection(json);
