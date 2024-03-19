@@ -8,35 +8,88 @@ from python_get_resolve import GetResolve, ResolveConnectionFailed
 import convert_photos
 
 media = {}
-def get_all_media_paths(project):
+
+def get_all_media_in_media_pool(project):
     # Iterate through the MediaPool to get every piece of media from the root folder
     # What Resolve calls bins in the GUI are called Folders in the API
     media_pool = project.GetMediaPool()
 
-    folders_to_explore = [media_pool.GetRootFolder()]
+    folders_to_explore = [{"folder": media_pool.GetRootFolder(), "binLocation": ""}]
     all_folders = []
 
     while len(folders_to_explore):
         folder = folders_to_explore.pop(0)
         all_folders.append(folder)
-        for subfolder in folder.GetSubFolderList():
-            folders_to_explore.append(subfolder)
+        for subfolder in folder["folder"].GetSubFolderList():
+            folders_to_explore.append({"folder": subfolder, "binLocation":(folder["binLocation"] + "/" + subfolder.GetName())})
 
-    all_media = []
-
-    for folder in all_folders:
-        clips = folder.GetClipList()
-        for clip in clips:
-            all_media.append(clip)
+    all_media = {"scope": "project",
+                 "oddResMedia": []
+                 }
     
+    cur_timeline = get_resolve_current_timeline()
+    clips_in_timeline = []
+
+    if cur_timeline:
+        items = get_all_media_items_in_timeline(cur_timeline)
+        #print("items is ", items)
+
+        frame_rate = project.GetSetting('timelineFrameRate')
+        #print("project frame rate is ", frame_rate)
+        timeline = get_resolve_current_timeline()
+        timeline_frame_rate = timeline.GetSetting("timelineFrameRate")
+        if (timeline_frame_rate is not None):
+            if (timeline_frame_rate != ""):
+                #print("timeline frame rate", timeline_frame_rate)
+                frame_rate = timeline_frame_rate
+        for item in items:
+            clips_in_timeline.append((item.GetMediaPoolItem(), frame_id_to_timecode(item.GetStart(), frame_rate)))
+    #print("frame rate is", frame_rate)
+    for folder in all_folders:
+        clips = folder["folder"].GetClipList()
+        #print(clips)
+        for clip in clips:
+            timecodes = []
+            if clips_in_timeline:
+                for item in clips_in_timeline:
+                    if clip.GetMediaId() == item[0].GetMediaId():
+                        timecodes.append(item[1])
+            all_media["oddResMedia"].append({"displayName": clip.GetName(), "binLocation": folder["binLocation"] + "/" + clip.GetName(), "resolution": clip.GetClipProperty("resolution"), "timecodes":timecodes, "filepath": clip.GetClipProperty("File Path")})
+    #print("all media", all_media)
     return all_media
 
-def get_all_odd_resolution_media(all_media):
+def get_all_media_items_in_timeline(timeline):
+    timeline_media = []
+    for i in range(timeline.GetTrackCount("video")):
+            timeline_media.extend(timeline.GetItemListInTrack("video", i + 1))
+    for i in range(timeline.GetTrackCount("audio")):
+            timeline_media.extend(timeline.GetItemListInTrack("audio", i + 1))
+    return timeline_media
+
+
+def get_all_media_in_timeline(timeline):
+    all_media = {"scope": "project",
+                "oddResMedia": []
+                }
+    clips = get_all_media_items_in_timeline(timeline)
+    for clip in clips:
+        #TODO: merge different instances of clips from the same media pool
+        #TODO: get bin location
+        all_media["oddResMedia"].append({"displayName": clip.GetName(), "binLocation": "", "resolution": clip.GetClipProperty("resolution"), "timecodes":"", "filepath": clip.GetClipProperty("File Path")})
+
+def frame_id_to_timecode(frame_id, frame_rate):
+    frames = int(frame_id % frame_rate)
+    seconds = int((frame_id // frame_rate) % 60)
+    minutes = int((frame_id // (frame_rate * 60)) % 60)
+    hours = int((frame_id // (frame_rate * 3600)) % 24)
+    return f"{hours:02d}:{minutes:02d}:{seconds:02d}:{frames:02d}"
+
+def get_all_odd_resolution_media(selected_media):
     # Store the Resolve MediaPoolItems in a dict with the filepath as the key so
     # we can find the objects later to manipulate
-    resolve_media_path_and_object = {}
-    for media in all_media:
-        resolution = media.GetClipProperty("Resolution")
+    odd_res_media = []
+    for media in selected_media:
+        resolution = media["resolution"]
         # Resolve outputs resolution as a string with the two values separated by
         # an 'x', so we need to split by 'x' and then typecast as int
         resolution = resolution.split("x")
@@ -50,8 +103,8 @@ def get_all_odd_resolution_media(all_media):
                 is_even = False
         
         if not is_even:
-            resolve_media_path_and_object[media.GetClipProperty("File Path")] = media
-    return resolve_media_path_and_object
+            odd_res_media.append(media)
+    return odd_res_media
 
 def replace_all_odd_resolution_media(all_odd_media) -> None:
     # Get each key from the dict, which are the filepaths
@@ -101,7 +154,7 @@ def convert_photos_in_media_pool() -> None:
     project = get_resolve_current_project()
 
     # Find the odd res media
-    media = get_all_media_paths(project)
+    media = get_all_media_in_media_pool(project)
     odd_res_media = get_all_odd_resolution_media(media)
     replace_all_odd_resolution_media(odd_res_media)
 
@@ -110,6 +163,14 @@ def parse_arguments():
     parser.add_argument('operation', type=str, choices=['projectAndTimeline'],
                         help='Operation to perform')
     return parser.parse_args()
+
+def currentMediaPoolToJSON():
+    try:
+        project = get_resolve_current_project()
+        outputJSON(get_all_media_in_media_pool(project))
+    except Exception as e:
+        sys.stderr.write(str(e))
+        exit()
 
 def projectAndTimelineToJSON():
     try:
@@ -139,11 +200,11 @@ def outputJSON(output_data: str):
         os.makedirs(conform_sidekick_dir, exist_ok=True)  # Create the directory if it does not exist
 
         # Create a temp file in the specified subdirectory
-        tempfile_name = ""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as temp_file:
+        tempfile_output = {"path": ""}
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json', dir=conform_sidekick_dir) as temp_file:
             json.dump(output_data, temp_file, indent=4)  # Make the JSON output pretty
-            tempfile_name = os.path.basename(temp_file.name)
-        print(tempfile_name)  # Print the path to the temp file
+            tempfile_output["path"] = temp_file.name
+        print(json.dumps(tempfile_output, indent=4))  # Print the path to the temp file
     except Exception as e:
         sys.stderr.write(str(e))
         exit()

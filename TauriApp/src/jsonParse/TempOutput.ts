@@ -1,27 +1,26 @@
 // https://app.quicktype.io/
 // To parse this data:
 //
-//   import { Convert, ResolveConnection } from "./file";
+//   import { Convert, TempOutput } from "./file";
 //
-//   const resolveConnection = Convert.toResolveConnection(json);
+//   const tempOutput = Convert.toTempOutput(json);
 //
 // These functions will throw an error if the JSON doesn't
 // match the expected interface, even if the JSON is valid.
 
-export interface ResolveConnection {
-    projectName:   string;
-    timelineName?: string;
+export interface TempOutput {
+    path: string;
 }
 
 // Converts JSON strings to/from your types
 // and asserts the results of JSON.parse at runtime
 export class Convert {
-    public static toResolveConnection(json: string): ResolveConnection {
-        return cast(JSON.parse(json), r("ResolveConnection"));
+    public static toTempOutput(json: string): TempOutput {
+        return cast(JSON.parse(json), r("TempOutput"));
     }
 
-    public static resolveConnectionToJson(value: ResolveConnection): string {
-        return JSON.stringify(uncast(value, r("ResolveConnection")), null, 2);
+    public static tempOutputToJson(value: TempOutput): string {
+        return JSON.stringify(uncast(value, r("TempOutput")), null, 2);
     }
 }
 
@@ -157,6 +156,9 @@ function l(typ: any) {
     return { literal: typ };
 }
 
+function a(typ: any) {
+    return { arrayItems: typ };
+}
 
 function u(...typs: any[]) {
     return { unionMembers: typs };
@@ -166,14 +168,16 @@ function o(props: any[], additional: any) {
     return { props, additional };
 }
 
+function m(additional: any) {
+    return { props: [], additional };
+}
 
 function r(name: string) {
     return { ref: name };
 }
 
 const typeMap: any = {
-    "ResolveConnection": o([
-        { json: "projectName", js: "projectName", typ: "" },
-        { json: "timelineName", js: "timelineName", typ: u(undefined, "") },
+    "TempOutput": o([
+        { json: "path", js: "path", typ: "" },
     ], false),
 };
