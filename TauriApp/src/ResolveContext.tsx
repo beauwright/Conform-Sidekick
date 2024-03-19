@@ -35,23 +35,17 @@ export const ResolveProvider = ({ children }: ResolveProviderProps) => {
     let intervalId: ReturnType<typeof setInterval> | null = null;
     const fetchProjectAndTimeline = async () => {
       try {
-        //console.log("calling python")
-        //console.log("before python call:", Date.now().toString())
         const command = Command.sidecar(
           "../../PythonInterface/dist/even_photos_resolve",
           "projectAndTimeline"
         );
         const output = await command.execute();
 
-        console.log("after python call:", output.stdout, Date.now().toString());
-        //console.log(output.stderr);
         const tempOutput = ConvertTempOutput.toTempOutput(output.stdout);
         console.log(tempOutput.path);
         const json = await readTextFile(tempOutput.path, {dir: BaseDirectory.Temp});
-        //console.log("json contents:", json);
 
         await removeFile(tempOutput.path, {dir: BaseDirectory.Temp});
-        //console.log("after delete", Date.now().toString())
         const projectAndTimeline =
           ConvertResolveConnections.toResolveConnection(json);
         setCurrentProject(projectAndTimeline.projectName);
