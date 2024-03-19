@@ -1,3 +1,5 @@
+// https://app.quicktype.io/
+
 // To parse this data:
 //
 //   import { Convert, OddResMedia } from "./file";
