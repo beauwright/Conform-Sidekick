@@ -9,10 +9,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { OddResMediaElement } from "@/jsonParse/OddPhotos";
-import { getObjectFromPythonSidecar } from "@/lib/utils";
 import { Command } from "@tauri-apps/api/shell";
-import { ChildProcess } from "child_process";
-import { stderr } from "process";
 
 export const columns: ColumnDef<OddResMediaElement>[] = [
   {
