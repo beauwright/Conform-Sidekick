@@ -8,7 +8,7 @@ import { appWindow } from '@tauri-apps/api/window';
 appWindow.show();
 
 // Prevent all right clicks
-document.addEventListener('contextmenu', event => event.preventDefault());
+//document.addEventListener('contextmenu', event => event.preventDefault());
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>

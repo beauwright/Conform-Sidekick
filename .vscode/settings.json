@@ -1,11 +1,16 @@
 {
     "cSpell.words": [
         "Blackmagic",
+        "clsx",
         "fusionscript",
         "LANCZOS",
         "mediapool",
         "scriptapp",
+        "tanstack",
+        "tauri",
         "timecode",
-        "timecodes"
+        "timecodes",
+        "typs",
+        "uncast"
     ]
 }

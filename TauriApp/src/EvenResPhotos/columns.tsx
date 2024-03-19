@@ -3,18 +3,18 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { OddResMediaElement } from "@/jsonParse/OddPhotos";
+import { getObjectFromPythonSidecar } from "@/lib/utils";
+import { Command } from "@tauri-apps/api/shell";
+import { ChildProcess } from "child_process";
+import { stderr } from "process";
 
-// This type is used to define the shape of our data.
-// You can use a Zod schema here if you want.
-export type Media = {
-  displayName: string;
-  binPath: string;
-  resolution: string;
-  timecode: string[];
-};
-
-export const columns: ColumnDef<Media>[] = [
+export const columns: ColumnDef<OddResMediaElement>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -42,7 +42,7 @@ export const columns: ColumnDef<Media>[] = [
     header: "Name",
   },
   {
-    accessorKey: "binPath",
+    accessorKey: "binLocation",
     header: "Media Pool Location",
   },
   {
@@ -50,11 +50,11 @@ export const columns: ColumnDef<Media>[] = [
     header: "Resolution",
   },
   {
-    accessorKey: "timecode",
+    accessorKey: "timecodes",
     header: "Current Timeline Timecode(s)",
     enableHiding: false,
     cell: ({ row }) => {
-      const timecodes = row.original.timecode;
+      const timecodes = row.original.timecodes;
 
       // Check if the timecodes list is empty and return a disabled button if true
       if (timecodes.length === 0) {
@@ -64,7 +64,24 @@ export const columns: ColumnDef<Media>[] = [
         return (
           <>
             {timecodes.map((tc, index) => (
-              <Button key={index} className="my-1 mr-1">{tc}</Button>
+              <Button
+                key={index}
+                className="my-1 mr-1"
+                onClick={() => {
+                  async function sidecar(arg: string[]) {
+                    const sidecar = await Command.sidecar(
+                      "../../PythonInterface/dist/even_photos_resolve",
+                      arg
+                    ).execute();
+                    console.log("stdout: ", sidecar.stdout, "stderr: ", sidecar.stderr)
+                  }
+                  const arg = ["jumpToTimecode", "--tc", tc]
+                  console.log("arg was ", arg)
+                  sidecar(arg);
+                }}
+              >
+                {tc}
+              </Button>
             ))}
           </>
         );
@@ -76,17 +93,16 @@ export const columns: ColumnDef<Media>[] = [
     header: "Status",
     enableHiding: false,
     cell: ({ row }) => {
-
-      return <>
-      <Popover>
-        <PopoverTrigger>
-        ⚠️
-        </PopoverTrigger>
-        <PopoverContent className="mx-5">
-          {row.original.displayName} has not been replaced.
-        </PopoverContent>
-      </Popover>
-      </>;
+      return (
+        <>
+          <Popover>
+            <PopoverTrigger>⚠️</PopoverTrigger>
+            <PopoverContent className="mx-5">
+              {row.original.displayName} has not been replaced.
+            </PopoverContent>
+          </Popover>
+        </>
+      );
     },
   },
 ];

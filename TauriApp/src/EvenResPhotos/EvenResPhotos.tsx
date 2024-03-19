@@ -1,44 +1,45 @@
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useWebSocket } from "@/ResolveContext";
+import { useResolveContext } from "@/ResolveContext";
 import { DataTable } from "../components/ui/data-table";
-import { Media, columns } from "./columns";
+import { columns } from "./columns";
 import { useEffect, useState } from "react";
-async function getData(): Promise<Media[]> {
-  // Fetch data from your API here.
-  return [
-    {
-      displayName: "File",
-      resolution: "101x2000",
-      binPath: "bin1/file.mov",
-      timecode: ["1:00:00:00", "1:00:00:30"]
-    },
-    {
-      displayName: "File 2",
-      resolution: "1001x2000",
-      binPath: "bin1/file2.mov",
-      timecode: []
-    },
-  ];
-}
+import { Convert, OddResMediaElement } from "@/jsonParse/OddPhotos";
+import { getObjectFromPythonSidecar } from "@/lib/utils";
+import ResolveConnectionStatus from "@/ResolveConnectionStatus";
 
-const data = await getData();
+async function getData(): Promise<OddResMediaElement[]> {
+  // Fetch data from your API here.
+  try {
+    const oddResMedia = await getObjectFromPythonSidecar(
+      ["oddResInProject"],
+      Convert.toOddResMedia
+    );
+    console.log("oddResMedia", oddResMedia);
+    return oddResMedia.oddResMedia;
+  } catch (error) {
+    console.log("error fetching odd res photos data", error)
+    return []
+  }
+}
 
 interface ProjectInfoProps {
   setShowDataTable: (value: boolean) => void;
 }
 
-const ProjectInfo:React.FC<ProjectInfoProps> = ({ setShowDataTable }) => {
-  const context = useWebSocket();
+const ProjectInfo: React.FC<ProjectInfoProps> = ({ setShowDataTable }) => {
+  const context = useResolveContext();
   const { currentProject, currentTimeline } = context || {};
-  const [projOrTimelineSelected, setProjOrTimelineSelected] = useState("project");
+  const [projOrTimelineSelected, setProjOrTimelineSelected] =
+    useState("project");
 
   useEffect(() => {
     if (currentTimeline === "") {
       setProjOrTimelineSelected("project");
     }
   }, [currentTimeline]);
+
   return (
     <>
       <div className="flex justify-center">
@@ -59,7 +60,9 @@ const ProjectInfo:React.FC<ProjectInfoProps> = ({ setShowDataTable }) => {
             }}
             className="p-5"
           >
-            <h2 className="font-semibold">Where to Look For Odd Resolution Media</h2>
+            <h2 className="font-semibold">
+              Where to Look For Odd Resolution Media
+            </h2>
             <div className="flex items-center gap-1">
               <RadioGroupItem value="project" id="project" />
               <Label htmlFor="r1">Project-wide</Label>
@@ -91,15 +94,38 @@ const ProjectInfo:React.FC<ProjectInfoProps> = ({ setShowDataTable }) => {
 // Main component
 function EvenResPhotos() {
   const [showDataTable, setShowDataTable] = useState(false);
+  const [tableData, setTableData] = useState<OddResMediaElement[] | null>(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      const data = await getData();
+      console.log("data is", data);
+      setTableData(data);
+    }
+  
+    if (showDataTable) {
+      fetchData();
+    }
+  }, [showDataTable]);
+  
 
   return (
     <>
-      {showDataTable === false ? (
-        <ProjectInfo setShowDataTable={setShowDataTable} />
+      {showDataTable ? (
+        tableData ? (
+          <div className="w-11/12 mx-auto">
+            <DataTable
+              columns={columns}
+              data={tableData}
+              buttonLabel="Convert Selected Photos"
+              buttonFunction={() => {}}
+            />
+          </div>
+        ) : (
+          <ResolveConnectionStatus loadingText="Finding odd resolution photos"/> // Show spinner here while tableData is null
+        )
       ) : (
-        <div className="w-11/12 mx-auto">
-          <DataTable columns={columns} data={data} buttonLabel="Convert Selected Photos" buttonFunction={() => {}}/>
-        </div>
+        <ProjectInfo setShowDataTable={setShowDataTable} />
       )}
     </>
   );

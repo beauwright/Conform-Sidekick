@@ -1,6 +1,9 @@
 // Component for displaying connecting status
-const ConnectingStatus = () => (
-    <div className="text-center">
+interface ConnectingStatusProps {
+  loadingText: string;
+}
+
+const ConnectingStatus: React.FC<ConnectingStatusProps> = ({ loadingText }) => (    <div className="text-center">
       <div role="status">
         <svg
           aria-hidden="true"
@@ -21,7 +24,7 @@ const ConnectingStatus = () => (
         <span className="sr-only">Loading...</span>
       </div>
       <h1 className="text-xl font-light text-slate-900 dark:text-slate-50 p-5 animate-pulse">
-        Connecting to DaVinci Resolve
+        {loadingText}
       </h1>
     </div>
   );

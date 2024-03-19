@@ -152,6 +152,8 @@ def get_media_object_from_bin_path(project, bin_path: str):
 
     return found_clip
                 
+def go_to_timecode(timeline, target_timecode):
+    timeline.SetCurrentTimecode(target_timecode)
 
 def replace_single_odd_resolution_file(file_path, media_object):
     # Get each key from the dict, which are the filepaths
@@ -251,9 +253,10 @@ def output_json(output_data: str) -> None:
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Process Resolve controls.')
-    parser.add_argument('operation', type=str, choices=['projectAndTimeline', 'oddResInProject', 'oddResInTimeline', 'convertBinLocation'],
+    parser.add_argument('operation', type=str, choices=['projectAndTimeline', 'oddResInProject', 'oddResInTimeline', 'convertBinLocation', 'jumpToTimecode'],
                         help='Operation to perform')
     parser.add_argument('--binPath', type=str, help='Convert media from a specific bin location', required=False)
+    parser.add_argument('--tc', type=str, help='Timecode to jump playhead to', required=False)
     return parser.parse_args()
 
 def main():
@@ -273,6 +276,12 @@ def main():
             print("Error: --binPath is required when using 'convertBinLocation'")
             sys.exit(1)
         convert_bin_path_json(args.binPath)
+
+    elif args.operation == 'jumpToTimecode':
+        if not args.tc:
+            print("Error: --tc is required when using 'jumpToTimecode")
+            sys.exit(1)
+        go_to_timecode(get_resolve_current_timeline(), args.tc)
     
 if __name__ == "__main__":
     main()

@@ -5,11 +5,9 @@ import {
   useEffect,
   ReactNode,
 } from "react";
-import { Command } from "@tauri-apps/api/shell";
-import { readTextFile, removeFile, BaseDirectory } from "@tauri-apps/api/fs";
 //import { Convert as ConvertOddPhotos, OddResMedia } from "./jsonParse/OddPhotos";
 import { Convert as ConvertResolveConnections } from "./jsonParse/ResolveConnections";
-import { Convert as ConvertTempOutput } from "./jsonParse/TempOutput"
+import { getObjectFromPythonSidecar } from "./lib/utils";
 
 interface ResolveContextType {
   currentProject: string;
@@ -18,7 +16,7 @@ interface ResolveContextType {
 
 const ResolveContext = createContext<ResolveContextType | null>(null);
 
-export const useWebSocket = () => {
+export const useResolveContext = () => {
   return useContext(ResolveContext);
 };
 
@@ -35,19 +33,8 @@ export const ResolveProvider = ({ children }: ResolveProviderProps) => {
     let intervalId: ReturnType<typeof setInterval> | null = null;
     const fetchProjectAndTimeline = async () => {
       try {
-        const command = Command.sidecar(
-          "../../PythonInterface/dist/even_photos_resolve",
-          "projectAndTimeline"
-        );
-        const output = await command.execute();
-
-        const tempOutput = ConvertTempOutput.toTempOutput(output.stdout);
-        console.log(tempOutput.path);
-        const json = await readTextFile(tempOutput.path, {dir: BaseDirectory.Temp});
-
-        await removeFile(tempOutput.path, {dir: BaseDirectory.Temp});
-        const projectAndTimeline =
-          ConvertResolveConnections.toResolveConnection(json);
+        const projectAndTimeline = await getObjectFromPythonSidecar(["projectAndTimeline"], ConvertResolveConnections.toResolveConnection)
+        
         setCurrentProject(projectAndTimeline.projectName);
 
         if (projectAndTimeline.timelineName) {
@@ -63,7 +50,7 @@ export const ResolveProvider = ({ children }: ResolveProviderProps) => {
     };
 
     fetchProjectAndTimeline(); // Initial fetch
-    intervalId = setInterval(fetchProjectAndTimeline, 4000); // Fetch every 4 seconds
+    //intervalId = setInterval(fetchProjectAndTimeline, 20000); // Fetch every 4 seconds
 
     return () => {
       if (intervalId) {

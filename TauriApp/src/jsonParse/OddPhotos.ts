@@ -19,6 +19,7 @@ export interface OddResMediaElement {
     binLocation: string;
     timecodes:   string[];
     resolution:  string;
+    filepath: string
 }
 
 // Converts JSON strings to/from your types
@@ -187,5 +188,6 @@ const typeMap: any = {
         { json: "binLocation", js: "binLocation", typ: "" },
         { json: "timecodes", js: "timecodes", typ: a("") },
         { json: "resolution", js: "resolution", typ: "" },
+        { json: "filepath", js: "filepath", typ: "" },
     ], false),
 };

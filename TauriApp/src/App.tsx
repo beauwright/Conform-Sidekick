@@ -11,7 +11,7 @@ import { useEffect, useState } from "react";
 import { Separator } from "./components/ui/separator";
 import { platform } from "@tauri-apps/api/os";
 import ConnectingStatus from "./ResolveConnectionStatus";
-import { useWebSocket } from "./ResolveContext";
+import { useResolveContext } from "./ResolveContext";
 
 // This component needs to be a child of a Router component to work
 function NavigateOnViewChange({ view }: { view: string }) {
@@ -35,7 +35,7 @@ export function App() {
   const handleViewChange = (newView: string) => {
     setView(newView);
   };
-  const context = useWebSocket();
+  const context = useResolveContext();
   const { currentProject } = context || {};
 
   return (
@@ -55,7 +55,7 @@ export function App() {
       {/*render loading screen or app depending on connection*/}
       {currentProject === "" ? (
         <div className="mx-auto my-auto justify-center p-40">
-          <ConnectingStatus />
+          <ConnectingStatus loadingText="Connecting to DaVinci Resolve"/>
         </div>
       ) : (
         <>
