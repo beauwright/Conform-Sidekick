@@ -5,7 +5,6 @@ import {
   useEffect,
   ReactNode,
 } from "react";
-//import { Convert as ConvertOddPhotos, OddResMedia } from "./jsonParse/OddPhotos";
 import { Convert as ConvertResolveConnections } from "./jsonParse/ResolveConnections";
 import { getObjectFromPythonSidecar } from "./lib/utils";
 
@@ -50,7 +49,7 @@ export const ResolveProvider = ({ children }: ResolveProviderProps) => {
     };
 
     fetchProjectAndTimeline(); // Initial fetch
-    //intervalId = setInterval(fetchProjectAndTimeline, 20000); // Fetch every 4 seconds
+    intervalId = setInterval(fetchProjectAndTimeline, 4000); // Fetch every 4 seconds
 
     return () => {
       if (intervalId) {

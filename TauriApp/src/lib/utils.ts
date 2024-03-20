@@ -16,7 +16,7 @@ export async function getObjectFromPythonSidecar<T>(cmdParams: string[], convert
   const tempOutput = JSON.parse(output.stdout);
   const json = await readTextFile(tempOutput.path, { dir: BaseDirectory.Temp });
   console.log(json);
-  //await removeFile(tempOutput.path, { dir: BaseDirectory.Temp });
+  await removeFile(tempOutput.path, { dir: BaseDirectory.Temp });
   const convertedData = convertFunction(json);
 
   return convertedData;
