@@ -203,7 +203,7 @@ def currentMediaPoolToJSON() -> None:
         output_json(get_all_odd_res_in_media_pool(project, timeline))
     except Exception as e:
         sys.stderr.write(str(e))
-        exit()
+        sys.exit(1)
 
 def current_timeline_json() -> None:
     try:
@@ -212,7 +212,7 @@ def current_timeline_json() -> None:
         output_json(get_all_odd_res_in_timeline(project, timeline))
     except Exception as e:
         sys.stderr.write(str(e))
-        exit()
+        sys.exit(1)
 
 def project_and_timeline_json() -> None:
     try:
@@ -232,7 +232,7 @@ def project_and_timeline_json() -> None:
 
     except Exception as e:
         sys.stderr.write(str(e))
-        exit()
+        sys.exit(1)
 
 def convert_bin_path_json(bin_path: str) -> None:
     project = get_resolve_current_project()
@@ -258,7 +258,7 @@ def output_json(output_data: str) -> None:
         print(json.dumps(tempfile_output, indent=4))  # Print the path to the temp file
     except Exception as e:
         sys.stderr.write(str(e))
-        exit()
+        sys.exit(1)
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Process Resolve controls.')
