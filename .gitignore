@@ -5,3 +5,4 @@ __pycache__
 node_modules
 build
 dist
+PythonInterface/even_photos_resolve.spec
