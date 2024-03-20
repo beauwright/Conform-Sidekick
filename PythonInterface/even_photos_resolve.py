@@ -70,7 +70,9 @@ def get_all_timeline_clips_with_timecode(project, timeline):
             if (timeline_frame_rate != ""):
                 frame_rate = timeline_frame_rate
         for item in items:
-            clips_in_timeline.append((item.GetMediaPoolItem(), frame_id_to_timecode(item.GetStart(), frame_rate)))
+            mediaPoolItem = item.GetMediaPoolItem()
+            if mediaPoolItem is not None:
+                clips_in_timeline.append((mediaPoolItem, frame_id_to_timecode(item.GetStart(), frame_rate)))
     return clips_in_timeline
 
 
