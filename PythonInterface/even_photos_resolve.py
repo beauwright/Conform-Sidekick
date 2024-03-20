@@ -27,8 +27,11 @@ def get_all_odd_res_in_media_pool(project, timeline) -> dict[str, str]:
             timecodes = []
             if clips_in_timeline:
                 for item in clips_in_timeline:
-                    if clip.GetMediaId() == item[0].GetMediaId():
-                        timecodes.append(item[1])
+                    try:
+                        if clip.GetMediaId() == item[0].GetMediaId():
+                            timecodes.append(item[1])
+                    except:
+                        pass
             
             resolution = clip.GetClipProperty("resolution")
             if is_resolution_odd(resolution):
