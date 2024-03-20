@@ -32,7 +32,34 @@ StereoEye = Literal['left', 'right']
 StillFrameSource = Literal[1, 2]
 """ 1 - First frame, 2 - Middle frame """
 
-SubTrackType = Literal['mono', 'stereo', '5.1', '5.1film', '7.1', '7.1film'] + ['adaptive{number}'.format(number) for number in range(1, 24)]
+SubTrackType = Literal['mono', 'stereo', '5.1', '5.1film', '7.1', '7.1film', 'adaptive1', 'adaptive2', 'adaptive3', 'adaptive4', 'adaptive5', 'adaptive6', 'adaptive7', 'adaptive8', 'adaptive9', 'adaptive10', 'adaptive11', 'adaptive12', 'adaptive13', 'adaptive14', 'adaptive15', 'adaptive16', 'adaptive17', 'adaptive18', 'adaptive19', 'adaptive20', 'adaptive21', 'adaptive22', 'adaptive23', 'adaptive24']
+
+TimelineExportType = Literal[
+    "Resolve.EXPORT_AAF",
+    "Resolve.EXPORT_DRT",
+    "Resolve.EXPORT_EDL",
+    "Resolve.EXPORT_FCP_7_XML",
+    "Resolve.EXPORT_FCPXML_1_8",
+    "Resolve.EXPORT_FCPXML_1_9",
+    "Resolve.EXPORT_FCPXML_1_10",
+    "Resolve.EXPORT_HDR_10_PROFILE_A",
+    "Resolve.EXPORT_HDR_10_PROFILE_B",
+    "Resolve.EXPORT_TEXT_CSV",
+    "Resolve.EXPORT_TEXT_TAB",
+    "Resolve.EXPORT_DOLBY_VISION_VER_2_9",
+    "Resolve.EXPORT_DOLBY_VISION_VER_4_0",
+    "Resolve.EXPORT_DOLBY_VISION_VER_5_1",
+    "Resolve.EXPORT_OTIO",
+]
+
+TimelineExportSubtype = Literal[
+    "Resolve.EXPORT_NONE",
+    "Resolve.EXPORT_AAF_NEW",
+    "Resolve.EXPORT_AAF_EXISTING",
+    "Resolve.EXPORT_CDL",
+    "Resolve.EXPORT_SDL",
+    "Resolve.EXPORT_MISSING_CLIPS",
+]
 
 TrackType = Literal['audio', 'video', 'subtitle']
 
@@ -1009,7 +1036,7 @@ class Project:
     def ExportCurrentFrameAsStill(self, filePath: str) -> bool:
         """
         Exports current frame as still to supplied filePath. filePath must end in valid export file format.
-        Returns True if succssful, False otherwise.
+        Returns True if successful, False otherwise.
         """
 
 
@@ -1152,7 +1179,7 @@ class MediaPool:
         ...
 
     @overload
-    def AppendToTimeline(self, clipInfo: List[MediaPoolClipInfo]) -> [TimelineItem]:
+    def AppendToTimeline(self, clipInfo: List[MediaPoolClipInfo]) -> List[TimelineItem]:
         """
         Appends list of clipInfos specified as dict of "mediaPoolItem", "startFrame" (int), "endFrame" (int),
         (optional) "mediaType" (int; 1 - Video only, 2 - Audio only), "trackIndex" (int) and "recordFrame" (int).
