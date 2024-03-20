@@ -9,30 +9,32 @@ import { Convert, OddResMediaElement } from "@/jsonParse/OddPhotos";
 import { getObjectFromPythonSidecar } from "@/lib/utils";
 import ResolveConnectionStatus from "@/ResolveConnectionStatus";
 
-async function getData(): Promise<OddResMediaElement[]> {
-  // Fetch data from your API here.
+async function getData(projOrTimelineSelected: string): Promise<OddResMediaElement[]> {
+  // Determine the argument based on the selected radio option
+  const dataKey = projOrTimelineSelected === "timeline" ? ["oddResInTimeline"] : ["oddResInProject"];
   try {
-    const oddResMedia = await getObjectFromPythonSidecar(
-      ["oddResInProject"],
-      Convert.toOddResMedia
-    );
-    console.log("oddResMedia", oddResMedia);
-    return oddResMedia.oddResMedia;
+      const oddResMedia = await getObjectFromPythonSidecar(
+          dataKey,
+          Convert.toOddResMedia
+      );
+      console.log("oddResMedia", oddResMedia);
+      return oddResMedia.oddResMedia;
   } catch (error) {
-    console.log("error fetching odd res photos data", error)
-    return []
+      console.log("error fetching odd res photos data", error);
+      return [];
   }
 }
 
+
 interface ProjectInfoProps {
   setShowDataTable: (value: boolean) => void;
+  projOrTimelineSelected: string;
+  setProjOrTimelineSelected: (value: string) => void;
 }
 
-const ProjectInfo: React.FC<ProjectInfoProps> = ({ setShowDataTable }) => {
+const ProjectInfo: React.FC<ProjectInfoProps> = ({ setShowDataTable, projOrTimelineSelected, setProjOrTimelineSelected }) => {
   const context = useResolveContext();
   const { currentProject, currentTimeline } = context || {};
-  const [projOrTimelineSelected, setProjOrTimelineSelected] =
-    useState("project");
 
   useEffect(() => {
     if (currentTimeline === "") {
@@ -95,10 +97,11 @@ const ProjectInfo: React.FC<ProjectInfoProps> = ({ setShowDataTable }) => {
 function EvenResPhotos() {
   const [showDataTable, setShowDataTable] = useState(false);
   const [tableData, setTableData] = useState<OddResMediaElement[] | null>(null);
+  const [projOrTimelineSelected, setProjOrTimelineSelected] = useState("project");
 
   useEffect(() => {
     async function fetchData() {
-      const data = await getData();
+      const data = await getData(projOrTimelineSelected);
       console.log("data is", data);
       setTableData(data);
     }
@@ -125,7 +128,7 @@ function EvenResPhotos() {
           <ResolveConnectionStatus loadingText="Finding odd resolution photos"/> // Show spinner here while tableData is null
         )
       ) : (
-        <ProjectInfo setShowDataTable={setShowDataTable} />
+        <ProjectInfo setShowDataTable={setShowDataTable} projOrTimelineSelected={projOrTimelineSelected} setProjOrTimelineSelected={setProjOrTimelineSelected} />
       )}
     </>
   );
