@@ -6,3 +6,4 @@ node_modules
 build
 dist
 PythonInterface/even_photos_resolve.spec
+.vscode/launch.json
