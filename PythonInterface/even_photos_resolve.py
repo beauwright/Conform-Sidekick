@@ -3,6 +3,8 @@ import json
 import tempfile
 import sys
 import os
+from typing import Dict, Union
+from fusionscript import MediaPoolItem, Project, Resolve, Timeline
 from get_resolve import GetResolve, ResolveConnectionFailed
 import convert_photos
 
@@ -85,7 +87,7 @@ def get_all_media_objects_in_timeline(timeline):
     return timeline_media
 
 
-def get_all_odd_res_in_timeline(project, timeline) -> dict[str, str]:
+def get_all_odd_res_in_timeline(project: Project, timeline: Timeline) -> dict[str, str]:
     all_folders = get_all_folders_in_project(project=project)
 
     all_media = {"scope": "timeline",
@@ -126,7 +128,7 @@ def is_resolution_odd(resolution: str) -> bool:
             is_odd = True
     return is_odd
 
-def get_media_object_from_bin_path(project, bin_path: str):
+def get_media_object_from_bin_path(project, bin_path: str) -> None|MediaPoolItem:
     folders = get_all_folders_in_project(project=project)
 
     bin_path = bin_path.split('/')
@@ -157,11 +159,13 @@ def get_media_object_from_bin_path(project, bin_path: str):
 
     return found_clip
                 
-def go_to_timecode(timeline, target_timecode):
+def go_to_timecode(timeline: Timeline, target_timecode: str) -> None:
     timeline.SetCurrentTimecode(target_timecode)
 
-def replace_single_odd_resolution_file(file_path, media_object):
-    # Get each key from the dict, which are the filepaths
+def replace_single_odd_resolution_file(
+    file_path: str, 
+    media_object: MediaPoolItem
+) -> Dict[str, Union[bool, str]]:    # Get each key from the dict, which are the filepaths
     converted_photo_filepath = convert_photos.convert_single_photo(file_path)
     if convert_photos is not None:
         is_replaced = media_object.ReplaceClip(converted_photo_filepath)
@@ -171,7 +175,7 @@ def replace_single_odd_resolution_file(file_path, media_object):
     else:
         return{"success": False, "file_path": file_path, "message": f"Failed to replace {file_path} because file conversion failed."}
 
-def get_resolve_current_project():
+def get_resolve_current_project() -> Resolve:
     # Get current Resolve project
     try:
         resolve = GetResolve()
@@ -181,7 +185,7 @@ def get_resolve_current_project():
     except AttributeError:
         raise ResolveConnectionFailed
 
-def get_resolve_current_timeline():
+def get_resolve_current_timeline() -> Timeline:
     # Get current Resolve timeline
     try:
         resolve = GetResolve()
@@ -212,7 +216,7 @@ def current_timeline_json() -> None:
 
 def project_and_timeline_json() -> None:
     try:
-        project = get_resolve_current_project()
+        project: Resolve = get_resolve_current_project()
         timeline = get_resolve_current_timeline()
         if project is None:
             raise ValueError("Unable to connect to DaVinci Resolve")

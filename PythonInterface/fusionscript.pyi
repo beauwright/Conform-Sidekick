@@ -34,33 +34,6 @@ StillFrameSource = Literal[1, 2]
 
 SubTrackType = Literal['mono', 'stereo', '5.1', '5.1film', '7.1', '7.1film'] + ['adaptive{number}'.format(number) for number in range(1, 24)]
 
-TimelineExportType = Literal[
-    Resolve.EXPORT_AAF,
-    Resolve.EXPORT_DRT,
-    Resolve.EXPORT_EDL,
-    Resolve.EXPORT_FCP_7_XML,
-    Resolve.EXPORT_FCPXML_1_8,
-    Resolve.EXPORT_FCPXML_1_9,
-    Resolve.EXPORT_FCPXML_1_10,
-    Resolve.EXPORT_HDR_10_PROFILE_A,
-    Resolve.EXPORT_HDR_10_PROFILE_B,
-    Resolve.EXPORT_TEXT_CSV,
-    Resolve.EXPORT_TEXT_TAB,
-    Resolve.EXPORT_DOLBY_VISION_VER_2_9,
-    Resolve.EXPORT_DOLBY_VISION_VER_4_0,
-    Resolve.EXPORT_DOLBY_VISION_VER_5_1,
-    Resolve.EXPORT_OTIO,
-]
-
-TimelineExportSubtype = Literal[
-    Resolve.EXPORT_NONE,
-    Resolve.EXPORT_AAF_NEW,
-    Resolve.EXPORT_AAF_EXISTING,
-    Resolve.EXPORT_CDL,
-    Resolve.EXPORT_SDL,
-    Resolve.EXPORT_MISSING_CLIPS,
-]
-
 TrackType = Literal['audio', 'video', 'subtitle']
 
 UniqueFilenameStyle = Literal[0, 1]
