@@ -33,7 +33,6 @@ export const ResolveProvider = ({ children }: ResolveProviderProps) => {
     const fetchProjectAndTimeline = async () => {
       try {
         const projectAndTimeline = await getObjectFromPythonSidecar(["projectAndTimeline"], ConvertResolveConnections.toResolveConnection)
-        
         setCurrentProject(projectAndTimeline.projectName);
 
         if (projectAndTimeline.timelineName) {
@@ -49,8 +48,7 @@ export const ResolveProvider = ({ children }: ResolveProviderProps) => {
     };
 
     fetchProjectAndTimeline(); // Initial fetch
-    intervalId = setInterval(fetchProjectAndTimeline, 4000); // Fetch every 4 seconds
-
+    intervalId = setInterval(fetchProjectAndTimeline, 10000);
     return () => {
       if (intervalId) {
         clearInterval(intervalId);
