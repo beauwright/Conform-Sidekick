@@ -14,13 +14,9 @@ class ResolveController:
             self.bin_location = bin_location
 
 
-    def get_all_odd_res_in_media_pool(self) -> dict[str, str]:
+    def get_all_media_in_media_pool(self) -> dict[str, str]:
         all_folders = self.get_all_folders_in_project()
-
-        all_media = {"scope": "project",
-                    "oddResMedia": []
-                    }
-        
+        all_media = {"scope": "project", "media": []}
         clips_in_timeline = self.get_all_timeline_clips_with_timecode()
         
         for folder in all_folders:
@@ -35,11 +31,25 @@ class ResolveController:
                         except:
                             pass
                 
-                resolution = clip.GetClipProperty("resolution")
-                if self.is_resolution_odd(resolution):
-                    all_media["oddResMedia"].append({"displayName": clip.GetName(), "binLocation": folder.bin_location + clip.GetName(), "resolution": clip.GetClipProperty("resolution"), "timecodes":timecodes, "filepath": clip.GetClipProperty("File Path")})
+                all_media["media"].append({
+                    "displayName": clip.GetName(),
+                    "binLocation": folder.bin_location + clip.GetName(),
+                    "resolution": clip.GetClipProperty("resolution"),
+                    "timecodes": timecodes,
+                    "filepath": clip.GetClipProperty("File Path")
+                })
         return all_media
 
+    def get_all_odd_res_in_media_pool(self) -> dict[str, str]:
+        all_media = self.get_all_media_in_media_pool()
+        odd_res_media = {"scope": "project", "oddResMedia": []}
+        
+        for media in all_media["media"]:
+            if self.is_resolution_odd(media["resolution"]):
+                odd_res_media["oddResMedia"].append(media)
+        
+        return odd_res_media
+    
     def get_all_folders_in_project(self):
         # Iterate through the MediaPool to get every piece of media from the root folder
         # What Resolve calls bins in the GUI are called Folders in the API
@@ -87,26 +97,14 @@ class ResolveController:
 
 
     def get_all_odd_res_in_timeline(self) -> dict[str, str]:
-        all_folders = self.get_all_folders_in_project()
-
-        all_media = {"scope": "timeline",
-                    "oddResMedia": []
-                    }
+        all_media = self.get_all_media_in_media_pool()
+        odd_res_media = {"scope": "timeline", "oddResMedia": []}
         
-        clips_in_timeline = self.get_all_timeline_clips_with_timecode()
+        for media in all_media["media"]:
+            if self.is_resolution_odd(media["resolution"]) and media["timecodes"] != []:
+                odd_res_media["oddResMedia"].append(media)
         
-        for folder in all_folders:
-            clips = folder.folder.GetClipList()
-            for clip in clips:
-                timecodes = []
-                if clips_in_timeline:
-                    for item in clips_in_timeline:
-                        if clip.GetMediaId() == item[0].GetMediaId():
-                            timecodes.append(item[1])
-                resolution = clip.GetClipProperty("resolution")
-                if self.is_resolution_odd(resolution) and len(timecodes):
-                    all_media["oddResMedia"].append({"displayName": clip.GetName(), "binLocation": folder.bin_location + clip.GetName(), "resolution": clip.GetClipProperty("resolution"), "timecodes":timecodes, "filepath": clip.GetClipProperty("File Path")})
-        return all_media
+        return odd_res_media
 
     def frame_id_to_timecode(self, frame_id, frame_rate) -> str:
         frames = int(frame_id % frame_rate)
