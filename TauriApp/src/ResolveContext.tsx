@@ -20,11 +20,10 @@ export const useResolveContext = () => {
 };
 
 interface ResolveProviderProps {
-  children: ReactNode; // This line specifies that children can be any valid React node
+  children: ReactNode;
 }
 
 export const ResolveProvider = ({ children }: ResolveProviderProps) => {
-  // Use the interface here
   const [currentProject, setCurrentProject] = useState("");
   const [currentTimeline, setCurrentTimeline] = useState("");
 
