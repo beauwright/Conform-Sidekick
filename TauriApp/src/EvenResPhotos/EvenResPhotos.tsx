@@ -99,7 +99,8 @@ function EvenResPhotos() {
   const [showDataTable, setShowDataTable] = useState(false);
   const [tableData, setTableData] = useState<OddResMediaElement[] | null>(null);
   const [projOrTimelineSelected, setProjOrTimelineSelected] = useState("project");
-  const [rowSelection, setRowSelection] = useState({});
+  type RowSelection = { [key: number]: boolean };
+  const [rowSelection, setRowSelection] = useState<RowSelection>({});
 
   useEffect(() => {
     async function fetchData() {
@@ -116,7 +117,7 @@ function EvenResPhotos() {
 
   const convertSelectedPhotos = async () => {
     if (tableData) {
-    const selectedRows = tableData.filter((_, index) => rowSelection[index]); // Assuming `rowSelection` is a map of indices to boolean values
+    const selectedRows = tableData.filter((_, index) => rowSelection[index]);
     const updatedData = [...tableData]; // Make a shallow copy of the table data
   
     for (const [index, photo] of selectedRows.entries()) {
