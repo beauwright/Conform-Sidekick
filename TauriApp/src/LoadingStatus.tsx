@@ -3,7 +3,7 @@ interface ConnectingStatusProps {
   loadingText: string;
 }
 
-const ConnectingStatus: React.FC<ConnectingStatusProps> = ({ loadingText }) => (    <div className="text-center">
+const LoadingStatus: React.FC<ConnectingStatusProps> = ({ loadingText }) => (    <div className="text-center">
       <div role="status">
         <svg
           aria-hidden="true"
@@ -29,4 +29,4 @@ const ConnectingStatus: React.FC<ConnectingStatusProps> = ({ loadingText }) => (
     </div>
   );
 
-  export default ConnectingStatus
+  export default LoadingStatus

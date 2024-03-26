@@ -10,7 +10,7 @@ import Toolbar from "./components/Toolbar";
 import { useEffect, useState } from "react";
 import { Separator } from "./components/ui/separator";
 import { platform } from "@tauri-apps/api/os";
-import ConnectingStatus from "./ResolveConnectionStatus";
+import ConnectingStatus from "./LoadingStatus";
 import { useResolveContext } from "./ResolveContext";
 
 // This component needs to be a child of a Router component to work
