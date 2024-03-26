@@ -25,16 +25,16 @@ def make_even_dimensions(image_path: str, output_path: str) -> str | None:
             # Save the resized image
             img_resized.save(output_path)
 
-            print(f"Image saved to {output_path}")
+            #print(f"Image saved to {output_path}")
             return output_path
         else:
-            print(f"Image {image_path} was sent for conversion but does not contain an odd resolution.")
+            #print(f"Image {image_path} was sent for conversion but does not contain an odd resolution.")
             return None
     except UnidentifiedImageError:
-        print(f"ERROR: Unable to read the file {image_path}. Skipping this file.")
+        #print(f"ERROR: Unable to read the file {image_path}. Skipping this file.")
         return None
     except FileNotFoundError:
-        print(f"ERROR: Unable to find the file in the mediapool located at {image_path}.")
+        #print(f"ERROR: Unable to find the file in the mediapool located at {image_path}.")
         return None
 
 def convert_all_photos_in_folder(directory) -> None:
@@ -65,7 +65,7 @@ def convert_single_photo(file_path: str) -> str | None:
         converted_file_path = make_even_dimensions(file_path, output_path)
         return converted_file_path
     else:
-        print(f"Unsupported file type: {file_name}{file_extension}")
+        #print(f"Unsupported file type: {file_name}{file_extension}")
         return None
 
 def main():

@@ -128,7 +128,7 @@ class ResolveController:
     """
     returns None or DaVinci Resolve MediaPoolItem
     """
-    def get_media_object_from_bin_path(self):
+    def get_media_object_from_bin_path(self, bin_path):
         folders = self.get_all_folders_in_project()
 
         bin_path = bin_path.split('/')
@@ -166,6 +166,7 @@ class ResolveController:
     media_object is a DaVinci Resolve MediaPoolItem
     """
     def replace_single_odd_resolution_file(
+        self,
         file_path: str, 
         media_object
     ) -> Dict[str, Union[bool, str]]:    # Get each key from the dict, which are the filepaths
@@ -173,7 +174,7 @@ class ResolveController:
         if convert_photos is not None:
             is_replaced = media_object.ReplaceClip(converted_photo_filepath)
             if not is_replaced:
-                return{"success": False, "file_path": file_path, "message": f"Failed to replace {file_path} with converted photo at {converted_photo_filepath}."}
-            return{"success": True, "file_path": file_path, "message": f"Converted photo located at {converted_photo_filepath}."}
+                return{"success": False, "error_message": f"Failed to replace {file_path} with converted photo at {converted_photo_filepath}."}
+            return{"success": True, "file_path": file_path}
         else:
-            return{"success": False, "file_path": file_path, "message": f"Failed to replace {file_path} because file conversion failed."}
+            return{"success": False, "error_message": f"Failed to replace {file_path} because file conversion failed."}

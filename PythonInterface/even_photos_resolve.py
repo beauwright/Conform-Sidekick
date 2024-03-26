@@ -60,9 +60,9 @@ def current_timeline_json(resolve_helper: ResolveHelper) -> None:
 def convert_bin_path_json(resolve_helper: ResolveHelper, bin_path: str) -> None:
     try:
         # Use resolve_helper's attributes and methods
-        media = resolve_helper.controller.get_media_object_from_bin_path(resolve_helper.project, bin_path)
+        media = resolve_helper.controller.get_media_object_from_bin_path(bin_path)
         if media is None:
-            output_json({"success": False, "file_path": None, "message": f"Failed to find the file from the specified binPath: {bin_path}."})
+            output_json({"success": False, "error_message": f"Failed to find the file from the specified binPath: {bin_path}."})
         else:
             result = resolve_helper.controller.replace_single_odd_resolution_file(media.GetClipProperty("File Path"), media)
             output_json(result)

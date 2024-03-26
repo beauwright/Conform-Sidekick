@@ -3,6 +3,7 @@
 import {
   ColumnDef,
   ColumnFiltersState,
+  RowSelectionState,
   SortingState,
   VisibilityState,
   flexRender,
@@ -26,15 +27,20 @@ import { Button } from "@/components/ui/button";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
-  buttonLabel: string,
-  buttonFunction: VoidFunction
+  buttonLabel: string;
+  buttonFunction: VoidFunction;
+  rowSelection: { [key: string]: boolean };
+  setRowSelection: (newSelection: RowSelectionState | ((prevState: RowSelectionState) => RowSelectionState)) => void;
 }
+
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   buttonLabel,
-  buttonFunction
+  buttonFunction,
+  rowSelection,
+  setRowSelection
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -42,7 +48,6 @@ export function DataTable<TData, TValue>({
   );
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = React.useState({});
 
   const table = useReactTable({
     data,

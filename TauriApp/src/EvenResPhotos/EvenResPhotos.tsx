@@ -5,7 +5,8 @@ import { useResolveContext } from "@/ResolveContext";
 import { DataTable } from "../components/ui/data-table";
 import { columns } from "./columns";
 import { useEffect, useState } from "react";
-import { Convert, OddResMediaElement } from "@/jsonParse/OddPhotos";
+import { Convert as ConvertOddResMedia, OddResMediaElement } from "@/jsonParse/OddPhotos";
+import { Convert as ConvertConversionResults, ConversionResult } from "@/jsonParse/ConversionResult";
 import { getObjectFromPythonSidecar } from "@/lib/utils";
 import ResolveConnectionStatus from "@/ResolveConnectionStatus";
 
@@ -15,7 +16,7 @@ async function getData(projOrTimelineSelected: string): Promise<OddResMediaEleme
   try {
       const oddResMedia = await getObjectFromPythonSidecar(
           dataKey,
-          Convert.toOddResMedia
+          ConvertOddResMedia.toOddResMedia
       );
       console.log("oddResMedia", oddResMedia);
       return oddResMedia.oddResMedia;
@@ -98,6 +99,7 @@ function EvenResPhotos() {
   const [showDataTable, setShowDataTable] = useState(false);
   const [tableData, setTableData] = useState<OddResMediaElement[] | null>(null);
   const [projOrTimelineSelected, setProjOrTimelineSelected] = useState("project");
+  const [rowSelection, setRowSelection] = useState({});
 
   useEffect(() => {
     async function fetchData() {
@@ -112,6 +114,41 @@ function EvenResPhotos() {
   }, [showDataTable]);
   
 
+  const convertSelectedPhotos = async () => {
+    if (tableData) {
+    const selectedRows = tableData.filter((_, index) => rowSelection[index]); // Assuming `rowSelection` is a map of indices to boolean values
+    const updatedData = [...tableData]; // Make a shallow copy of the table data
+  
+    for (const [index, photo] of selectedRows.entries()) {
+      try {
+        const conversionResult: ConversionResult = await getObjectFromPythonSidecar(
+          ["convertBinLocation", "--binPath", photo.binLocation],
+          ConvertConversionResults.toConversionResult
+        );
+  
+        // Update the status in the copied data array
+        if (conversionResult.success) {
+          updatedData[index].status = "Converted"
+          updatedData[index].statusMessage = `Converted photo located at: ${conversionResult.file_path}`;
+        } else {
+          updatedData[index].status = "Failed"
+          if (conversionResult.error_message) {
+          updatedData[index].statusMessage = conversionResult.error_message;
+          }
+        }
+      } catch (error) {
+        updatedData[index].status = "Failed";
+        updatedData[index].statusMessage = "Photo conversion process did not run as expected.";
+      }
+    }
+
+  
+    // Update the state to reflect the new data
+    setTableData(updatedData);
+  }
+  };
+  
+
   return (
     <>
       {showDataTable ? (
@@ -121,8 +158,10 @@ function EvenResPhotos() {
               columns={columns}
               data={tableData}
               buttonLabel="Convert Selected Photos"
-              buttonFunction={() => {}}
-            />
+              buttonFunction={convertSelectedPhotos}
+              rowSelection={rowSelection}
+              setRowSelection={setRowSelection}
+              />
           </div>
         ) : (
           <ResolveConnectionStatus loadingText="Finding odd resolution photos"/> // Show spinner here while tableData is null
