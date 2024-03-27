@@ -98,7 +98,7 @@ def parse_arguments():
 
 def main():
     args = parse_arguments()
-    resolve_helper = ResolveHelper()  # Instantiate your helper class
+    resolve_helper = ResolveHelper()
 
     try:
         if args.operation == 'projectAndTimeline':
@@ -113,7 +113,7 @@ def main():
 
         elif args.operation == 'convertOddResPhoto':
             if not args.binLocation or not args.mediaId:
-                print("Error: --binPath is required for 'convertBinLocation'")
+                print("Error: --binLocation and --mediaId are required for 'convertBinLocation'")
                 sys.exit(1)
             convert_bin_path_json(resolve_helper, args.binLocation, args.mediaId)
 

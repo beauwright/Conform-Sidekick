@@ -170,6 +170,6 @@ class ResolveController:
             is_replaced = media_object.ReplaceClip(converted_photo_filepath)
             if not is_replaced:
                 return{"success": False, "error_message": f"Failed to replace {file_path} with converted photo at {converted_photo_filepath}."}
-            return{"success": True, "file_path": file_path}
+            return{"success": True, "file_path": converted_photo_filepath}
         else:
             return{"success": False, "error_message": f"Failed to replace {file_path} because file conversion failed."}

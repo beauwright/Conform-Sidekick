@@ -39,7 +39,7 @@ export function App() {
   const { currentProject } = context || {};
 
   return (
-    <div className="min-w-screen min-h-screen bg-white dark:bg-slate-950 select-none cursor-default">
+    <div className="min-w-screen min-h-screen bg-white dark:bg-slate-950 cursor-default">
       {/*render top bar with drag region on macOS, nothing for windows/linux*/}
       {platformName === "darwin" ? (
         <div id="macOS title bar">

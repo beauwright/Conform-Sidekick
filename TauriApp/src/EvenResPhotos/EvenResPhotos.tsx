@@ -45,7 +45,7 @@ const ProjectInfo: React.FC<ProjectInfoProps> = ({ setShowDataTable, projOrTimel
 
   return (
     <>
-      <div className="flex justify-center">
+      <div className="flex justify-center select-none">
         <h2 className="dark:text-slate-300 text-sm px-5 italic">
           Current Project: {currentProject}
         </h2>
@@ -53,7 +53,7 @@ const ProjectInfo: React.FC<ProjectInfoProps> = ({ setShowDataTable, projOrTimel
           Current Timeline: {currentTimeline}
         </h2>
       </div>
-      <div className="flex justify-center ">
+      <div className="flex justify-center select-none">
         <div className="flex m-2 w-1/2 justify-around bg-slate-50/60 dark:bg-slate-800 rounded dark:text-white">
           <RadioGroup
             defaultValue="project"
@@ -169,7 +169,7 @@ function EvenResPhotos() {
         tableData ? (
           <div className="w-11/12 mx-auto">
             {isConverting ? (
-              <LoadingStatus loadingText={`${processedCount}/${totalCount} photos converted (${processedCount / totalCount}%)`} />
+              <LoadingStatus loadingText={`${processedCount}/${totalCount} photos converted (${processedCount / totalCount * 100}%)`} />
             ) : (
               <DataTable
                 columns={columns}
