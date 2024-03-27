@@ -57,12 +57,12 @@ def current_timeline_json(resolve_helper: ResolveHelper) -> None:
         sys.stderr.write(str(e))
         sys.exit(1)
 
-def convert_bin_path_json(resolve_helper: ResolveHelper, bin_path: str) -> None:
+def convert_bin_path_json(resolve_helper: ResolveHelper, bin_location: str, media_id: str) -> None:
     try:
         # Use resolve_helper's attributes and methods
-        media = resolve_helper.controller.get_media_object_from_bin_path(bin_path)
+        media = resolve_helper.controller.get_media_object_from_bin_path(bin_location, media_id)
         if media is None:
-            output_json({"success": False, "error_message": f"Failed to find the file from the specified binPath: {bin_path}."})
+            output_json({"success": False, "error_message": f"Failed to find the file from the specified binLocation: {bin_location}."})
         else:
             result = resolve_helper.controller.replace_single_odd_resolution_file(media.GetClipProperty("File Path"), media)
             output_json(result)
@@ -89,9 +89,10 @@ def output_json(output_data: str) -> None:
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Process Resolve controls.')
-    parser.add_argument('operation', type=str, choices=['projectAndTimeline', 'oddResInProject', 'oddResInTimeline', 'convertBinLocation', 'jumpToTimecode'],
+    parser.add_argument('operation', type=str, choices=['projectAndTimeline', 'oddResInProject', 'oddResInTimeline', 'convertOddResPhoto', 'jumpToTimecode'],
                         help='Operation to perform')
-    parser.add_argument('--binPath', type=str, help='Convert media from a specific bin location', required=False)
+    parser.add_argument('--binLocation', type=str, help='Bin location for the odd resolution photo to convert', required=False)
+    parser.add_argument('--mediaId', type=str, help='MediaId for the odd resolution photo to convert', required=False)
     parser.add_argument('--tc', type=str, help='Timecode to jump playhead to', required=False)
     return parser.parse_args()
 
@@ -110,18 +111,18 @@ def main():
         elif args.operation == 'oddResInTimeline':
             current_timeline_json(resolve_helper)
 
-        elif args.operation == 'convertBinLocation':
-            if not args.binPath:
+        elif args.operation == 'convertOddResPhoto':
+            if not args.binLocation or not args.mediaId:
                 print("Error: --binPath is required for 'convertBinLocation'")
                 sys.exit(1)
-            convert_bin_path_json(resolve_helper, args.binPath)
+            convert_bin_path_json(resolve_helper, args.binLocation, args.mediaId)
 
         elif args.operation == 'jumpToTimecode':
             if not args.tc:
                 print("Error: --tc is required for 'jumpToTimecode'")
                 sys.exit(1)
             # Now handled within the helper
-            resolve_helper.controller.go_to_timecode(resolve_helper.timeline, args.tc)
+            resolve_helper.controller.go_to_timecode(args.tc)
     except Exception as e:
         sys.stderr.write(str(e))
         sys.exit(1)

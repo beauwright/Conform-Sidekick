@@ -133,7 +133,7 @@ function EvenResPhotos() {
       for (const [index, photo] of selectedRows.entries()) {
         try {
           const conversionResult: ConversionResult = await getObjectFromPythonSidecar(
-            ["convertBinLocation", "--binPath", photo.binLocation],
+            ["convertOddResPhoto", "--binLocation", photo.binLocation, "--mediaId", photo.mediaId],
             ConvertConversionResults.toConversionResult
           );
 
@@ -169,7 +169,7 @@ function EvenResPhotos() {
         tableData ? (
           <div className="w-11/12 mx-auto">
             {isConverting ? (
-              <LoadingStatus loadingText={`${processedCount}/${totalCount} photos converted.`} />
+              <LoadingStatus loadingText={`${processedCount}/${totalCount} photos converted (${processedCount / totalCount}%)`} />
             ) : (
               <DataTable
                 columns={columns}

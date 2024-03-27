@@ -21,6 +21,7 @@ export interface OddResMediaElement {
     timecodes:   string[];
     resolution:  string;
     filepath: string;
+    mediaId: string;
     status: string;
     statusMessage: string;
 }
@@ -200,7 +201,8 @@ const typeMap: any = {
         { json: "timecodes", js: "timecodes", typ: a("") },
         { json: "resolution", js: "resolution", typ: "" },
         { json: "filepath", js: "filepath", typ: "" },
+        { json: "mediaId", js: "mediaId", typ: "" },
         { json: "status", js: "status", typ: "" },
-        { json: "statusMessage", js: "statusMessage", typ: "" },
+        { json: "statusMessage", js: "statusMessage", typ: "" }
     ], false),
 };

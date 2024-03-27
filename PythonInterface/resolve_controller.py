@@ -36,7 +36,8 @@ class ResolveController:
                     "binLocation": folder.bin_location + clip.GetName(),
                     "resolution": clip.GetClipProperty("resolution"),
                     "timecodes": timecodes,
-                    "filepath": clip.GetClipProperty("File Path")
+                    "filepath": clip.GetClipProperty("File Path"),
+                    "mediaId": clip.GetMediaId()
                 })
         return all_media
 
@@ -128,36 +129,30 @@ class ResolveController:
     """
     returns None or DaVinci Resolve MediaPoolItem
     """
-    def get_media_object_from_bin_path(self, bin_path):
+    def get_media_object_from_bin_path(self, bin_location, media_id):
         folders = self.get_all_folders_in_project()
 
-        bin_path = bin_path.split('/')
+        # Split the bin path and initialize the directory and file name
+        bin_location_parts = bin_location.split('/')
+        if len(bin_location_parts) < 2:  # Need at least a folder and a file
+            return None
+
         bin_directory = ""
-
-        if len(bin_path) == 0:
-            return None
-
-        file_name = bin_path[len(bin_path) - 1]
-
-        for index, sub_path in enumerate(bin_path):
-            if index != len(bin_path) - 1:
+        for index, sub_path in enumerate(bin_location_parts):
+            if index != len(bin_location_parts) - 1:
                 bin_directory = bin_directory + "/" + sub_path
+        file_name = bin_location_parts[-1]
 
-        clips = None
+        # Search through all folders for matching bin paths
         for folder in folders:
-            if(folder.bin_location == bin_directory):
+            if folder.bin_location == bin_directory:
                 clips = folder.folder.GetClipList()
-        
-        if clips is None:
-            return None
-        
-        found_clip = None
+                for clip in clips:
+                    if clip.GetName() == file_name and clip.GetMediaId() == media_id:
+                            return clip
 
-        for clip in clips:
-            if clip.GetName() == file_name:
-                found_clip = clip
+        return None
 
-        return found_clip
                     
     def go_to_timecode(self, target_timecode: str) -> None:
         self.timeline.SetCurrentTimecode(target_timecode)
