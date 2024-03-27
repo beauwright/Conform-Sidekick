@@ -6,8 +6,8 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "DaVinci Resolve Sidekick",
-    "version": "0.0.0"
+    "productName": "Conform Sidekick",
+    "version": "1.0.0"
   },
   "tauri": {
     "allowlist": {
@@ -43,7 +43,7 @@
     },
     "windows": [
       {
-        "title": "DaVinci Resolve Sidekick",
+        "title": "Conform Sidekick",
         "hiddenTitle": true,
         "width": 800,
         "height": 600,
@@ -62,7 +62,7 @@
     "bundle": {
       "active": true,
       "targets": "all",
-      "identifier": "com.color-tools",
+      "identifier": "com.conformsidekick",
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",

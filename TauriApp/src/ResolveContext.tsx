@@ -20,11 +20,10 @@ export const useResolveContext = () => {
 };
 
 interface ResolveProviderProps {
-  children: ReactNode; // This line specifies that children can be any valid React node
+  children: ReactNode;
 }
 
 export const ResolveProvider = ({ children }: ResolveProviderProps) => {
-  // Use the interface here
   const [currentProject, setCurrentProject] = useState("");
   const [currentTimeline, setCurrentTimeline] = useState("");
 
@@ -33,7 +32,6 @@ export const ResolveProvider = ({ children }: ResolveProviderProps) => {
     const fetchProjectAndTimeline = async () => {
       try {
         const projectAndTimeline = await getObjectFromPythonSidecar(["projectAndTimeline"], ConvertResolveConnections.toResolveConnection)
-        
         setCurrentProject(projectAndTimeline.projectName);
 
         if (projectAndTimeline.timelineName) {
@@ -49,8 +47,7 @@ export const ResolveProvider = ({ children }: ResolveProviderProps) => {
     };
 
     fetchProjectAndTimeline(); // Initial fetch
-    intervalId = setInterval(fetchProjectAndTimeline, 4000); // Fetch every 4 seconds
-
+    intervalId = setInterval(fetchProjectAndTimeline, 10000);
     return () => {
       if (intervalId) {
         clearInterval(intervalId);

@@ -3,12 +3,12 @@
 import {
   ColumnDef,
   ColumnFiltersState,
+  RowSelectionState,
   SortingState,
   VisibilityState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
@@ -27,15 +27,20 @@ import { Button } from "@/components/ui/button";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
-  buttonLabel: string,
-  buttonFunction: VoidFunction
+  buttonLabel: string;
+  buttonFunction: VoidFunction;
+  rowSelection: { [key: string]: boolean };
+  setRowSelection: (newSelection: RowSelectionState | ((prevState: RowSelectionState) => RowSelectionState)) => void;
 }
+
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   buttonLabel,
-  buttonFunction
+  buttonFunction,
+  rowSelection,
+  setRowSelection
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -43,7 +48,6 @@ export function DataTable<TData, TValue>({
   );
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = React.useState({});
 
   const table = useReactTable({
     data,
@@ -51,7 +55,6 @@ export function DataTable<TData, TValue>({
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
@@ -66,9 +69,8 @@ export function DataTable<TData, TValue>({
 
   return (
     <>
-      <div className="flex-1 text-sm text-muted-foreground">
-        {table.getFilteredSelectedRowModel().rows.length} of
-        {table.getFilteredRowModel().rows.length} row(s) selected.
+      <div className="flex-1 text-sm text-muted-foreground dark:text-white">
+        {table.getFilteredSelectedRowModel().rows.length} of {table.getFilteredRowModel().rows.length} row(s) selected.
       </div>
       <div className="rounded-md border dark:text-white">
         <Table>
@@ -81,9 +83,9 @@ export function DataTable<TData, TValue>({
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                     </TableHead>
                   );
                 })}

@@ -90,16 +90,34 @@ export const columns: ColumnDef<OddResMediaElement>[] = [
     header: "Status",
     enableHiding: false,
     cell: ({ row }) => {
+      let statusIcon;
+      let statusMessage = row.original.statusMessage || "Status not available"; // Fallback message
+  
+      switch (row.original.status) {
+        case "Converted":
+          statusIcon = "✅";
+          break;
+        case "Unconverted":
+          statusIcon = "⚠️";
+          break;
+        case "Failed":
+          statusIcon = "❌";
+          break;
+        default:
+          statusIcon = "❔"; // Default icon if none of the cases match
+          break;
+      }
+  
       return (
         <>
           <Popover>
-            <PopoverTrigger>⚠️</PopoverTrigger>
+            <PopoverTrigger>{statusIcon}</PopoverTrigger>
             <PopoverContent className="mx-5">
-              {row.original.displayName} has not been replaced.
+              {statusMessage}
             </PopoverContent>
           </Popover>
         </>
       );
     },
-  },
+  }  
 ];

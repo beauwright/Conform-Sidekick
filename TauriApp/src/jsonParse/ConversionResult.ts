@@ -1,40 +1,38 @@
-// NOTE: This autogen code was manually tweaked to initalize status and statusMessage properties, status is set to "Unconverted" and statusMessage to "This file has not been converted."
 // https://app.quicktype.io/
 
 // To parse this data:
 //
-//   import { Convert, OddResMedia } from "./file";
+//   import { Convert, ConversionResult } from "./file";
 //
-//   const oddResMedia = Convert.toOddResMedia(json);
+//   const ConversionResult = Convert.toConversionResult(json);
 //
 // These functions will throw an error if the JSON doesn't
 // match the expected interface, even if the JSON is valid.
 
-export interface OddResMedia {
-    scope:       string;
-    oddResMedia: OddResMediaElement[];
-}
-
-export interface OddResMediaElement {
-    displayName: string;
-    binLocation: string;
-    timecodes:   string[];
-    resolution:  string;
-    filepath: string;
-    mediaId: string;
-    status: string;
-    statusMessage: string;
+export interface ConversionResult {
+    /**
+     * The error message if the conversion failed.
+     */
+    error_message?: string;
+    /**
+     * The file path of the converted photo if the conversion was successful.
+     */
+    file_path?: string;
+    /**
+     * Indicates if the conversion was successful.
+     */
+    success: boolean;
 }
 
 // Converts JSON strings to/from your types
 // and asserts the results of JSON.parse at runtime
 export class Convert {
-    public static toOddResMedia(json: string): OddResMedia {
-        return cast(JSON.parse(json), r("OddResMedia"));
+    public static toConversionResult(json: string): ConversionResult {
+        return cast(JSON.parse(json), r("ConversionResult"));
     }
 
-    public static oddResMediaToJson(value: OddResMedia): string {
-        return JSON.stringify(uncast(value, r("OddResMedia")), null, 2);
+    public static ConversionResultToJson(value: ConversionResult): string {
+        return JSON.stringify(uncast(value, r("ConversionResult")), null, 2);
     }
 }
 
@@ -125,16 +123,8 @@ function transform(val: any, typ: any, getProps: any, key: any = '', parent: any
         Object.getOwnPropertyNames(props).forEach(key => {
             const prop = props[key];
             const v = Object.prototype.hasOwnProperty.call(val, key) ? val[key] : undefined;
-            if (prop.key === "status" && v === undefined) {
-                // Set default value for status if it's missing in the JSON
-                result[prop.key] = "Unconverted";
-            } else if (prop.key === "statusMessage" && v === undefined) {
-                // Set default value for statusMessage if it's missing in the JSON
-                result[prop.key] = "This file has not been converted.";
-            } else {
-                result[prop.key] = transform(v, prop.typ, getProps, key, ref);
-            }
-        });        
+            result[prop.key] = transform(v, prop.typ, getProps, key, ref);
+        });
         Object.getOwnPropertyNames(val).forEach(key => {
             if (!Object.prototype.hasOwnProperty.call(props, key)) {
                 result[key] = transform(val[key], additional, getProps, key, ref);
@@ -178,31 +168,24 @@ function l(typ: any) {
     return { literal: typ };
 }
 
-function a(typ: any) {
-    return { arrayItems: typ };
+
+function u(...typs: any[]) {
+    return { unionMembers: typs };
 }
 
 function o(props: any[], additional: any) {
     return { props, additional };
 }
 
+
 function r(name: string) {
     return { ref: name };
 }
 
 const typeMap: any = {
-    "OddResMedia": o([
-        { json: "scope", js: "scope", typ: "" },
-        { json: "oddResMedia", js: "oddResMedia", typ: a(r("OddResMediaElement")) },
-    ], false),
-    "OddResMediaElement": o([
-        { json: "displayName", js: "displayName", typ: "" },
-        { json: "binLocation", js: "binLocation", typ: "" },
-        { json: "timecodes", js: "timecodes", typ: a("") },
-        { json: "resolution", js: "resolution", typ: "" },
-        { json: "filepath", js: "filepath", typ: "" },
-        { json: "mediaId", js: "mediaId", typ: "" },
-        { json: "status", js: "status", typ: "" },
-        { json: "statusMessage", js: "statusMessage", typ: "" }
+    "ConversionResult": o([
+        { json: "error_message", js: "error_message", typ: u(undefined, "") },
+        { json: "file_path", js: "file_path", typ: u(undefined, "") },
+        { json: "success", js: "success", typ: true },
     ], false),
 };
