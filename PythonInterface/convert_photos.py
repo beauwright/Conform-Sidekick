@@ -70,10 +70,18 @@ def convert_single_photo(file_path: str) -> str | None:
 
 def main():
     parser = argparse.ArgumentParser(description='Convert images to have even dimensions')
-    parser.add_argument('directory', type=str, help='Directory containing images')
+    parser.add_argument('--directory', type=str, help='Directory containing images to convert')
+    parser.add_argument('--file', type=str, help='Single image file to convert')
     args = parser.parse_args()
     
-    convert_all_photos_in_folder(args.directory)
+    if args.directory:
+        convert_all_photos_in_folder(args.directory)
+        print("all photos converted")
+    elif args.file:
+        filepath = convert_single_photo(args.file)
+        print(filepath)
+    else:
+        print("Please specify either a directory or a file.")
 
 if __name__ == '__main__':
     main()
