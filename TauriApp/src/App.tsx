@@ -1,4 +1,3 @@
-// Other imports remain the same
 import {
   BrowserRouter as Router,
   Routes,
@@ -24,7 +23,7 @@ function NavigateOnViewChange({ view }: { view: string }) {
       navigate("/interlaced");
     }
   }, [view, navigate]);
-  
+
   // Render nothing, as this component is only for redirecting when the view is changed by the Toolbar
   return null;
 }
@@ -42,7 +41,7 @@ export function App() {
     <div className="min-w-screen min-h-screen bg-white dark:bg-slate-950 cursor-default">
       {/*render top bar with drag region on macOS, nothing for windows/linux*/}
       {platformName === "darwin" ? (
-        <div id="macOS title bar">
+        <div id="macOS title bar" className="mac-title-bar">
           <div
             data-tauri-drag-region
             className="bg-slate-50 py-3 dark:bg-slate-900"
@@ -53,26 +52,28 @@ export function App() {
         <div />
       )}
       {/*render loading screen or app depending on connection*/}
-      {currentProject === "" ? (
-        <div className="mx-auto my-auto justify-center p-40">
-          <ConnectingStatus loadingText="Connecting to DaVinci Resolve"/>
-        </div>
-      ) : (
-        <>
-          <Toolbar defaultValue={view} onViewChange={handleViewChange} />
-          <Router>
-            <NavigateOnViewChange view={view} />
-            <Routes>
-              <Route path="/" element={<></>} />
-              <Route path="/photos" element={<EvenResPhotos />} />
-              <Route
-                path="/interlaced"
-                element={<h1 className="dark:text-white">Placeholder</h1>}
-              />
-            </Routes>
-          </Router>
-        </>
-      )}
+      <div className="main-content">
+        {currentProject === "" ? (
+          <div className="mx-auto my-auto justify-center p-40">
+            <ConnectingStatus loadingText="Connecting to DaVinci Resolve" />
+          </div>
+        ) : (
+          <>
+            <Toolbar defaultValue={view} onViewChange={handleViewChange} />
+            <Router>
+              <NavigateOnViewChange view={view} />
+              <Routes>
+                <Route path="/" element={<></>} />
+                <Route path="/photos" element={<EvenResPhotos />} />
+                <Route
+                  path="/interlaced"
+                  element={<h1 className="dark:text-white">Placeholder</h1>}
+                />
+              </Routes>
+            </Router>
+          </>
+        )}
+      </div>
     </div>
   );
 }
