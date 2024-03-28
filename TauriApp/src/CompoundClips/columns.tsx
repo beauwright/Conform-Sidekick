@@ -3,11 +3,6 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { SelectedMediaElement } from "@/jsonParse/SelectedMedia";
 import TimecodeButton from "@/components/TimecodeButton";
 
@@ -43,10 +38,6 @@ export const columns: ColumnDef<SelectedMediaElement>[] = [
     header: "Media Pool Location",
   },
   {
-    accessorKey: "resolution",
-    header: "Resolution",
-  },
-  {
     accessorKey: "timecodes",
     header: "Current Timeline Timecode(s)",
     enableHiding: false,
@@ -65,40 +56,5 @@ export const columns: ColumnDef<SelectedMediaElement>[] = [
         );
       }
     },
-  },
-  {
-    id: "status",
-    header: "Status",
-    enableHiding: false,
-    cell: ({ row }) => {
-      let statusIcon;
-      let statusMessage = row.original.statusMessage || "Status not available"; // Fallback message
-  
-      switch (row.original.status) {
-        case "Converted":
-          statusIcon = "✅";
-          break;
-        case "Unconverted":
-          statusIcon = "⚠️";
-          break;
-        case "Failed":
-          statusIcon = "❌";
-          break;
-        default:
-          statusIcon = "❔"; // Default icon if none of the cases match
-          break;
-      }
-  
-      return (
-        <>
-          <Popover>
-            <PopoverTrigger>{statusIcon}</PopoverTrigger>
-            <PopoverContent className="mx-5">
-              {statusMessage}
-            </PopoverContent>
-          </Popover>
-        </>
-      );
-    },
-  }  
+  }
 ];

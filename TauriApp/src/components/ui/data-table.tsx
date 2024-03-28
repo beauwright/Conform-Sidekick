@@ -1,5 +1,7 @@
 "use client";
-
+import {
+  useNavigate,
+} from "react-router-dom";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -21,26 +23,28 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
-  buttonLabel: string;
-  buttonFunction: VoidFunction;
   rowSelection: { [key: string]: boolean };
   setRowSelection: (newSelection: RowSelectionState | ((prevState: RowSelectionState) => RowSelectionState)) => void;
+  buttonProps?: {
+    buttonLabel: string;
+    buttonFunction: VoidFunction;
+  };
 }
+
 
 
 export function DataTable<TData, TValue>({
   columns,
   data,
-  buttonLabel,
-  buttonFunction,
+  buttonProps,
   rowSelection,
-  setRowSelection
+  setRowSelection,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -66,10 +70,24 @@ export function DataTable<TData, TValue>({
       rowSelection,
     },
   });
+  const navigate = useNavigate();
+  const [shouldReload, setShouldReload] = useState(false);
+
+  // Function to navigate back to selection screen
+  const handleGoBack = () => {
+    setShouldReload(true);
+    navigate(-2); // Navigate back past table and loading screen
+  };
+
+  useEffect(() => {
+    if (shouldReload) {
+      setShouldReload(false); // Reset the reload trigger
+    }
+  }, [location.pathname]);
 
   return (
     <>
-      <div className="flex-1 text-sm text-muted-foreground dark:text-white">
+      <div className="flex-1 text-sm text-muted-foreground dark:text-white break-all">
         {table.getFilteredSelectedRowModel().rows.length} of {table.getFilteredRowModel().rows.length} row(s) selected.
       </div>
       <div className="rounded-md border dark:text-white">
@@ -123,13 +141,21 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
       <div className="flex justify-center">
-        <Button
-          className="my-5"
-          disabled={table.getFilteredSelectedRowModel().rows.length === 0}
-          onClick={() => buttonFunction()}
-        >
-          {buttonLabel}
-        </Button>
+        {/* Conditionally render the button if buttonProps is provided */}
+        {buttonProps && (
+          <div className="flex justify-center">
+            <Button
+              className="m-5"
+              disabled={table.getFilteredSelectedRowModel().rows.length === 0}
+              onClick={() => buttonProps.buttonFunction()}
+            >
+              {buttonProps.buttonLabel}
+            </Button>
+          </div>
+        )}
+        <div className="flex justify-center">
+          <Button variant="outline" className="m-5 dark:text-slate-200" onClick={handleGoBack}>Go back</Button>
+        </div>
       </div>
     </>
   );

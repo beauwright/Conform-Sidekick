@@ -38,18 +38,18 @@ class ResolveController:
                     "timecodes": timecodes,
                     "filepath": clip.GetClipProperty("File Path"),
                     "mediaId": clip.GetMediaId(),
-                    "type": clip.GetClipProperty("Type"),
+                    "clipType": clip.GetClipProperty("Type"),
                     "fieldType": clip.GetClipProperty("Field Dominance")
                 })
         return all_media
 
     def get_all_odd_res_in_media_pool(self) -> dict[str, str]:
         all_media = self.get_all_media_in_media_pool()
-        odd_res_media = {"scope": "project", "oddResMedia": []}
+        odd_res_media = {"scope": "project", "selectedMedia": []}
         
         for media in all_media["media"]:
             if self.is_resolution_odd(media["resolution"]):
-                odd_res_media["oddResMedia"].append(media)
+                odd_res_media["selectedMedia"].append(media)
         
         return odd_res_media
     
@@ -100,34 +100,34 @@ class ResolveController:
 
     def get_all_interlaced_in_media_pool(self):
         all_media = self.get_all_media_in_media_pool()
-        interlaced_media = {"scope": "project", "interlacedMedia": []}
+        interlaced_media = {"scope": "project", "selectedMedia": []}
         for media in all_media["media"]:
             if self.is_interlaced(media["fieldType"]):
-                interlaced_media["interlacedMedia"].append(media)
+                interlaced_media["selectedMedia"].append(media)
         return interlaced_media
     
     def get_all_interlaced_in_timeline(self):
         all_media = self.get_all_media_in_media_pool()
-        interlaced_media = {"scope": "timeline", "interlacedMedia": []}
+        interlaced_media = {"scope": "timeline", "selectedMedia": []}
         for media in all_media["media"]:
             if self.is_interlaced(media["fieldType"]) and media["timecodes"] != []:
-                interlaced_media["interlacedMedia"].append(media)
+                interlaced_media["selectedMedia"].append(media)
         return interlaced_media
 
     def get_all_compound_clips_in_media_pool(self):
         all_media = self.get_all_media_in_media_pool()
-        compound_clips = {"scope": "project", "compoundClips": []}
+        compound_clips = {"scope": "project", "selectedMedia": []}
         for media in all_media["media"]:
-            if media["type"] == "Compound":
-                compound_clips["compoundClips"].append(media)
+            if media["clipType"] == "Compound":
+                compound_clips["selectedMedia"].append(media)
         return compound_clips
     
     def get_all_compound_clips_in_timeline(self):
         all_media = self.get_all_media_in_media_pool()
-        compound_clips = {"scope": "timeline", "compoundClips": []}
+        compound_clips = {"scope": "timeline", "selectedMedia": []}
         for media in all_media["media"]:
-            if media["type"] == "Compound" and media["timecodes"] != []:
-                compound_clips["compoundClips"].append(media)
+            if media["clipType"] == "Compound" and media["timecodes"] != []:
+                compound_clips["selectedMedia"].append(media)
         return compound_clips
 
     def is_interlaced(self, fieldType: str):
@@ -137,11 +137,11 @@ class ResolveController:
 
     def get_all_odd_res_in_timeline(self) -> dict[str, str]:
         all_media = self.get_all_media_in_media_pool()
-        odd_res_media = {"scope": "timeline", "oddResMedia": []}
+        odd_res_media = {"scope": "timeline", "selectedMedia": []}
         
         for media in all_media["media"]:
             if self.is_resolution_odd(media["resolution"]) and media["timecodes"] != []:
-                odd_res_media["oddResMedia"].append(media)
+                odd_res_media["selectedMedia"].append(media)
         
         return odd_res_media
 
