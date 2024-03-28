@@ -1,5 +1,5 @@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-function Toolbar({
+function NavigationTabs({
   defaultValue,
   onViewChange,
 }: {
@@ -39,4 +39,4 @@ function Toolbar({
     </>
   );
 }
-export default Toolbar;
+export default NavigationTabs;

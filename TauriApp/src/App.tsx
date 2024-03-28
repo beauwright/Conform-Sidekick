@@ -5,7 +5,7 @@ import {
   useNavigate,
 } from "react-router-dom";
 import EvenResPhotos from "./EvenResPhotos/EvenResPhotos";
-import Toolbar from "./components/Toolbar";
+import NavigationTabs from "./components/NavigationTabs";
 import { useEffect, useState } from "react";
 import { Separator } from "./components/ui/separator";
 import { platform } from "@tauri-apps/api/os";
@@ -63,7 +63,7 @@ export function App() {
           </div>
         ) : (
           <>
-            <Toolbar defaultValue={view} onViewChange={handleViewChange} />
+            <NavigationTabs defaultValue={view} onViewChange={handleViewChange} />
             <Router>
               <NavigateOnViewChange view={view} />
               <Routes>
