@@ -3,25 +3,27 @@
 
 // To parse this data:
 //
-//   import { Convert, OddResMedia } from "./file";
+//   import { Convert, SelectedMedia } from "./file";
 //
-//   const oddResMedia = Convert.toOddResMedia(json);
+//   const SelectedMedia = Convert.toSelectedMedia(json);
 //
 // These functions will throw an error if the JSON doesn't
 // match the expected interface, even if the JSON is valid.
 
-export interface OddResMedia {
+export interface SelectedMedia {
     scope:       string;
-    oddResMedia: OddResMediaElement[];
+    selectedMedia: SelectedMediaElement[];
 }
 
-export interface OddResMediaElement {
+export interface SelectedMediaElement {
     displayName: string;
     binLocation: string;
     timecodes:   string[];
     resolution:  string;
     filepath: string;
     mediaId: string;
+    clipType: string;
+    fieldType: string;
     status: string;
     statusMessage: string;
 }
@@ -29,12 +31,12 @@ export interface OddResMediaElement {
 // Converts JSON strings to/from your types
 // and asserts the results of JSON.parse at runtime
 export class Convert {
-    public static toOddResMedia(json: string): OddResMedia {
-        return cast(JSON.parse(json), r("OddResMedia"));
+    public static toSelectedMedia(json: string): SelectedMedia {
+        return cast(JSON.parse(json), r("SelectedMedia"));
     }
 
-    public static oddResMediaToJson(value: OddResMedia): string {
-        return JSON.stringify(uncast(value, r("OddResMedia")), null, 2);
+    public static selectedMediaToJson(value: SelectedMedia): string {
+        return JSON.stringify(uncast(value, r("SelectedMedia")), null, 2);
     }
 }
 
@@ -191,17 +193,19 @@ function r(name: string) {
 }
 
 const typeMap: any = {
-    "OddResMedia": o([
+    "SelectedMedia": o([
         { json: "scope", js: "scope", typ: "" },
-        { json: "oddResMedia", js: "oddResMedia", typ: a(r("OddResMediaElement")) },
+        { json: "selectedMedia", js: "selectedMedia", typ: a(r("SelectedMediaElement")) },
     ], false),
-    "OddResMediaElement": o([
+    "SelectedMediaElement": o([
         { json: "displayName", js: "displayName", typ: "" },
         { json: "binLocation", js: "binLocation", typ: "" },
         { json: "timecodes", js: "timecodes", typ: a("") },
         { json: "resolution", js: "resolution", typ: "" },
         { json: "filepath", js: "filepath", typ: "" },
         { json: "mediaId", js: "mediaId", typ: "" },
+        { json: "clipType", js: "clipType", typ: "" },
+        { json: "fieldType", js: "fieldType", typ: "" },
         { json: "status", js: "status", typ: "" },
         { json: "statusMessage", js: "statusMessage", typ: "" }
     ], false),

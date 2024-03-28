@@ -5,21 +5,21 @@ import { useResolveContext } from "@/ResolveContext";
 import { DataTable } from "../components/ui/data-table";
 import { columns } from "./columns";
 import { useEffect, useState } from "react";
-import { Convert as ConvertOddResMedia, OddResMediaElement } from "@/jsonParse/OddPhotos";
+import { Convert as ConvertOddResMedia, SelectedMediaElement } from "@/jsonParse/SelectedMedia";
 import { Convert as ConvertConversionResults, ConversionResult } from "@/jsonParse/ConversionResult";
 import { getObjectFromPythonSidecar } from "@/lib/utils";
 import LoadingStatus from "@/LoadingStatus";
 
-async function getData(projOrTimelineSelected: string): Promise<OddResMediaElement[]> {
+async function getData(projOrTimelineSelected: string): Promise<SelectedMediaElement[]> {
   // Determine the argument based on the selected radio option
   const dataKey = projOrTimelineSelected === "timeline" ? ["oddResInTimeline"] : ["oddResInProject"];
   try {
     const oddResMedia = await getObjectFromPythonSidecar(
       dataKey,
-      ConvertOddResMedia.toOddResMedia
+      ConvertOddResMedia.toSelectedMedia
     );
     console.log("oddResMedia", oddResMedia);
-    return oddResMedia.oddResMedia;
+    return oddResMedia.selectedMedia;
   } catch (error) {
     console.log("error fetching odd res photos data", error);
     return [];
@@ -97,7 +97,7 @@ const ProjectInfo: React.FC<ProjectInfoProps> = ({ setShowDataTable, projOrTimel
 // Main component
 function EvenResPhotos() {
   const [showDataTable, setShowDataTable] = useState(false);
-  const [tableData, setTableData] = useState<OddResMediaElement[] | null>(null);
+  const [tableData, setTableData] = useState<SelectedMediaElement[] | null>(null);
   const [projOrTimelineSelected, setProjOrTimelineSelected] = useState("project");
   type RowSelection = { [key: number]: boolean };
   // Table state

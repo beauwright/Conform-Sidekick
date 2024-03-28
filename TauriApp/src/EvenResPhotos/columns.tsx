@@ -8,10 +8,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { OddResMediaElement } from "@/jsonParse/OddPhotos";
+import { SelectedMediaElement } from "@/jsonParse/SelectedMedia";
 import { Command } from "@tauri-apps/api/shell";
 
-export const columns: ColumnDef<OddResMediaElement>[] = [
+export const columns: ColumnDef<SelectedMediaElement>[] = [
   {
     id: "select",
     header: ({ table }) => (
