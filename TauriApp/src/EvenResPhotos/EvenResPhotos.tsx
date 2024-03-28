@@ -6,6 +6,7 @@ import { Convert as ConvertConversionResults, ConversionResult } from "@/jsonPar
 import { getObjectFromPythonSidecar } from "@/lib/utils";
 import LoadingStatus from "@/LoadingStatus";
 import ScopeSelector from "@/components/ScopeSelector"
+import MediaTable from "@/components/MediaTable";
 async function getData(projOrTimelineSelected: string): Promise<SelectedMediaElement[]> {
   // Determine the argument based on the selected radio option
   const dataKey = projOrTimelineSelected === "timeline" ? ["oddResInTimeline"] : ["oddResInProject"];
@@ -92,6 +93,18 @@ function EvenResPhotos() {
 
   return (
     <>
+      <MediaTable typeOfMediaDisplayString="Odd Resolution Media" 
+      dataFetchParameters={{
+        projectKey: "oddResInProject",
+        timelineKey: "oddResInTimeline",
+        conversionFunction: ConvertOddResMedia.toSelectedMedia,
+      }} 
+      columns={columns} 
+      buttonProps={
+        buttonLabel: "Convert Selected Photos",
+        buttonFunction: convertSelectedPhotos
+      }
+      />
       {showDataTable ? (
         tableData ? (
           <div className="w-11/12 mx-auto">
@@ -114,7 +127,7 @@ function EvenResPhotos() {
           <LoadingStatus loadingText="Finding odd resolution photos" />
         )
       ) : (
-        <ScopeSelector setShowDataTable={setShowDataTable} projOrTimelineSelected={projOrTimelineSelected} setProjOrTimelineSelected={setProjOrTimelineSelected} typeOfMediaDisplayString="Odd Resolution Media"/>
+        <ScopeSelector setShowDataTable={setShowDataTable} projOrTimelineSelected={projOrTimelineSelected} setProjOrTimelineSelected={setProjOrTimelineSelected} typeOfMediaDisplayString="Odd Resolution Media" />
       )}
     </>
   );
