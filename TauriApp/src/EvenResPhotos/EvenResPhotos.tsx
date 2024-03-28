@@ -107,7 +107,6 @@ function EvenResPhotos() {
                 }}
                 rowSelection={rowSelection}
                 setRowSelection={setRowSelection}
-                navigatePath="/photos"
               />
             )}
           </div>

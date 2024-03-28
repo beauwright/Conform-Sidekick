@@ -53,7 +53,6 @@ function InterlacedMedia() {
                             data={tableData}
                             rowSelection={rowSelection}
                             setRowSelection={setRowSelection}
-                            navigatePath="/interlaced"
                         />
                     </div>
                 ) : (

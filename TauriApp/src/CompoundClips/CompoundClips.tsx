@@ -53,7 +53,6 @@ function CompoundClips() {
                             data={tableData}
                             rowSelection={rowSelection}
                             setRowSelection={setRowSelection}
-                            navigatePath="/compound"
                         />
                     </div>
                 ) : (

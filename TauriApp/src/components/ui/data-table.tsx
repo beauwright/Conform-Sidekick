@@ -35,7 +35,6 @@ interface DataTableProps<TData, TValue> {
     buttonLabel: string;
     buttonFunction: VoidFunction;
   };
-  navigatePath: string
 }
 
 
@@ -46,7 +45,6 @@ export function DataTable<TData, TValue>({
   buttonProps,
   rowSelection,
   setRowSelection,
-  navigatePath
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
