@@ -9,7 +9,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { SelectedMediaElement } from "@/jsonParse/SelectedMedia";
-import { Command } from "@tauri-apps/api/shell";
+import TimecodeButton from "@/components/TimecodeButton";
 
 export const columns: ColumnDef<SelectedMediaElement>[] = [
   {
@@ -52,33 +52,14 @@ export const columns: ColumnDef<SelectedMediaElement>[] = [
     enableHiding: false,
     cell: ({ row }) => {
       const timecodes = row.original.timecodes;
-
-      // Check if the timecodes list is empty and return a disabled button if true
+  
       if (timecodes.length === 0) {
         return <Button disabled={true}>No Timecode</Button>;
       } else {
-        // Map each timecode to a Button component
         return (
           <>
             {timecodes.map((tc, index) => (
-              <Button
-                key={index}
-                className="my-1 mr-1"
-                onClick={() => {
-                  async function sidecar(arg: string[]) {
-                    const sidecar = await Command.sidecar(
-                      "../../PythonInterface/dist/even_photos_resolve",
-                      arg
-                    ).execute();
-                    console.log("stdout: ", sidecar.stdout, "stderr: ", sidecar.stderr)
-                  }
-                  const arg = ["jumpToTimecode", "--tc", tc]
-                  console.log("arg was ", arg)
-                  sidecar(arg);
-                }}
-              >
-                {tc}
-              </Button>
+              <TimecodeButton key={index} timecode={tc} />
             ))}
           </>
         );
