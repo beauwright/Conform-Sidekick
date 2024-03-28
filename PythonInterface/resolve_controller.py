@@ -37,7 +37,9 @@ class ResolveController:
                     "resolution": clip.GetClipProperty("resolution"),
                     "timecodes": timecodes,
                     "filepath": clip.GetClipProperty("File Path"),
-                    "mediaId": clip.GetMediaId()
+                    "mediaId": clip.GetMediaId(),
+                    "type": clip.GetClipProperty("Type"),
+                    "fieldType": clip.GetClipProperty("Field Dominance")
                 })
         return all_media
 
@@ -96,6 +98,42 @@ class ResolveController:
                 timeline_media.extend(self.timeline.GetItemListInTrack("audio", i + 1))
         return timeline_media
 
+    def get_all_interlaced_in_media_pool(self):
+        all_media = self.get_all_media_in_media_pool()
+        interlaced_media = {"scope": "project", "interlacedMedia": []}
+        for media in all_media["media"]:
+            if self.is_interlaced(media["fieldType"]):
+                interlaced_media["interlacedMedia"].append(media)
+        return interlaced_media
+    
+    def get_all_interlaced_in_timeline(self):
+        all_media = self.get_all_media_in_media_pool()
+        interlaced_media = {"scope": "timeline", "interlacedMedia": []}
+        for media in all_media["media"]:
+            if self.is_interlaced(media["fieldType"]) and media["timecodes"] != []:
+                interlaced_media["interlacedMedia"].append(media)
+        return interlaced_media
+
+    def get_all_compound_clips_in_media_pool(self):
+        all_media = self.get_all_media_in_media_pool()
+        compound_clips = {"scope": "project", "compoundClips": []}
+        for media in all_media["media"]:
+            if media["type"] == "Compound":
+                compound_clips["compoundClips"].append(media)
+        return compound_clips
+    
+    def get_all_compound_clips_in_timeline(self):
+        all_media = self.get_all_media_in_media_pool()
+        compound_clips = {"scope": "timeline", "compoundClips": []}
+        for media in all_media["media"]:
+            if media["type"] == "Compound" and media["timecodes"] != []:
+                compound_clips["compoundClips"].append(media)
+        return compound_clips
+
+    def is_interlaced(self, fieldType: str):
+        if fieldType == "Upper Field" or fieldType == "Lower Field":
+            return True
+        return False
 
     def get_all_odd_res_in_timeline(self) -> dict[str, str]:
         all_media = self.get_all_media_in_media_pool()

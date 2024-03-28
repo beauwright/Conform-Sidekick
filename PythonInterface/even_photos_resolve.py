@@ -41,17 +41,42 @@ class ResolveHelper:
             "timelineName": self.timeline.GetName() if self.timeline else ""
         }
     
-def currentMediaPoolToJSON(resolve_helper: ResolveHelper) -> None:
+def current_odd_res_in_mediapool_to_json(resolve_helper: ResolveHelper) -> None:
     try:
-        # Access ResolveController directly from resolve_helper
         output_json(resolve_helper.controller.get_all_odd_res_in_media_pool())
     except Exception as e:
         sys.stderr.write(str(e))
         sys.exit(1)
-
-def current_timeline_json(resolve_helper: ResolveHelper) -> None:
+def current_interlaced_in_project_to_json(resolve_helper: ResolveHelper) -> None:
     try:
-        # Access ResolveController directly from resolve_helper
+        output_json(resolve_helper.controller.get_all_interlaced_in_media_pool())
+    except Exception as e:
+        sys.stderr.write(str(e))
+        sys.exit(1)
+
+def current_interlaced_in_timeline_to_json(resolve_helper: ResolveHelper) -> None:
+    try:
+        output_json(resolve_helper.controller.get_all_interlaced_in_timeline())
+    except Exception as e:
+        sys.stderr.write(str(e))
+        sys.exit(1)
+
+def current_compound_clips_in_project_to_json(resolve_helper: ResolveHelper) -> None:
+    try:
+        output_json(resolve_helper.controller.get_all_compound_clips_in_media_pool())
+    except Exception as e:
+        sys.stderr.write(str(e))
+        sys.exit(1)  
+
+def current_compound_clips_in_timeline_to_json(resolve_helper: ResolveHelper) -> None:
+    try:
+        output_json(resolve_helper.controller.get_all_compound_clips_in_timeline())
+    except Exception as e:
+        sys.stderr.write(str(e))
+        sys.exit(1)  
+
+def current_odd_res_in_timeline_json(resolve_helper: ResolveHelper) -> None:
+    try:
         output_json(resolve_helper.controller.get_all_odd_res_in_timeline())
     except Exception as e:
         sys.stderr.write(str(e))
@@ -59,7 +84,6 @@ def current_timeline_json(resolve_helper: ResolveHelper) -> None:
 
 def convert_bin_path_json(resolve_helper: ResolveHelper, bin_location: str, media_id: str) -> None:
     try:
-        # Use resolve_helper's attributes and methods
         media = resolve_helper.controller.get_media_object_from_bin_path(bin_location, media_id)
         if media is None:
             output_json({"success": False, "error_message": f"Failed to find the file from the specified binLocation: {bin_location}."})
@@ -74,13 +98,13 @@ def output_json(output_data: str) -> None:
     try:
         # Ensure the ConformSidekick subfolder exists
         temp_dir = tempfile.gettempdir()  # Get the system temporary directory
-        conform_sidekick_dir = os.path.join(temp_dir, 'ConformSidekick')  # Path to your specific temp dir
+        conform_sidekick_dir = os.path.join(temp_dir, 'ConformSidekick')
         os.makedirs(conform_sidekick_dir, exist_ok=True)  # Create the directory if it does not exist
 
-        # Create a temp file in the specified subdirectory
+        # Create a temp file
         tempfile_output = {"path": ""}
         with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json', dir=conform_sidekick_dir) as temp_file:
-            json.dump(output_data, temp_file, indent=4)  # Make the JSON output pretty
+            json.dump(output_data, temp_file, indent=4)
             tempfile_output["path"] = temp_file.name
         print(json.dumps(tempfile_output, indent=4))  # Print the path to the temp file
     except Exception as e:
@@ -89,7 +113,7 @@ def output_json(output_data: str) -> None:
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Process Resolve controls.')
-    parser.add_argument('operation', type=str, choices=['projectAndTimeline', 'oddResInProject', 'oddResInTimeline', 'convertOddResPhoto', 'jumpToTimecode'],
+    parser.add_argument('operation', type=str, choices=['projectAndTimeline', 'oddResInProject', 'oddResInTimeline', 'interlacedInProject', 'interlacedInTimeline', 'compoundClipsInProject', 'compoundClipsInTimeline', 'convertOddResPhoto', 'jumpToTimecode'],
                         help='Operation to perform')
     parser.add_argument('--binLocation', type=str, help='Bin location for the odd resolution photo to convert', required=False)
     parser.add_argument('--mediaId', type=str, help='MediaId for the odd resolution photo to convert', required=False)
@@ -106,10 +130,22 @@ def main():
             output_json(info)
 
         elif args.operation == 'oddResInProject':
-            currentMediaPoolToJSON(resolve_helper)
+            current_odd_res_in_mediapool_to_json(resolve_helper)
 
         elif args.operation == 'oddResInTimeline':
-            current_timeline_json(resolve_helper)
+            current_odd_res_in_timeline_json(resolve_helper)
+
+        elif args.operation == 'interlacedInProject':
+            current_interlaced_in_project_to_json(resolve_helper)
+
+        elif args.operation == 'interlacedInTimeline':
+            current_interlaced_in_timeline_to_json(resolve_helper)
+
+        elif args.operation == 'compoundClipsInProject':
+            current_compound_clips_in_project_to_json(resolve_helper)
+
+        elif args.operation == 'compoundClipsInTimeline':
+            current_compound_clips_in_timeline_to_json(resolve_helper)
 
         elif args.operation == 'convertOddResPhoto':
             if not args.binLocation or not args.mediaId:
@@ -121,8 +157,8 @@ def main():
             if not args.tc:
                 print("Error: --tc is required for 'jumpToTimecode'")
                 sys.exit(1)
-            # Now handled within the helper
             resolve_helper.controller.go_to_timecode(args.tc)
+
     except Exception as e:
         sys.stderr.write(str(e))
         sys.exit(1)
