@@ -11,6 +11,8 @@ import { Separator } from "./components/ui/separator";
 import { platform } from "@tauri-apps/api/os";
 import ConnectingStatus from "./LoadingStatus";
 import { useResolveContext } from "./ResolveContext";
+import InterlacedMedia from "./InterlacedMedia/InterlacedMedia";
+import CompoundClips from "./CompoundClips/CompoundClips";
 
 // This component needs to be a child of a Router component to work
 function NavigateOnViewChange({ view }: { view: string }) {
@@ -21,6 +23,8 @@ function NavigateOnViewChange({ view }: { view: string }) {
       navigate("/photos");
     } else if (view === "interlaced") {
       navigate("/interlaced");
+    } else if (view === "compound") {
+      navigate("/compound")
     }
   }, [view, navigate]);
 
@@ -67,7 +71,11 @@ export function App() {
                 <Route path="/photos" element={<EvenResPhotos />} />
                 <Route
                   path="/interlaced"
-                  element={<h1 className="dark:text-white">Placeholder</h1>}
+                  element={<InterlacedMedia />}
+                />
+                <Route
+                  path="/compound"
+                  element={<CompoundClips />}
                 />
               </Routes>
             </Router>

@@ -116,18 +116,18 @@ class ResolveController:
 
     def get_all_compound_clips_in_media_pool(self):
         all_media = self.get_all_media_in_media_pool()
-        compound_clips = {"scope": "project", "compoundClips": []}
+        compound_clips = {"scope": "project", "selectedMedia": []}
         for media in all_media["media"]:
             if media["clipType"] == "Compound":
-                compound_clips["compoundClips"].append(media)
+                compound_clips["selectedMedia"].append(media)
         return compound_clips
     
     def get_all_compound_clips_in_timeline(self):
         all_media = self.get_all_media_in_media_pool()
-        compound_clips = {"scope": "timeline", "compoundClips": []}
+        compound_clips = {"scope": "timeline", "selectedMedia": []}
         for media in all_media["media"]:
             if media["clipType"] == "Compound" and media["timecodes"] != []:
-                compound_clips["compoundClips"].append(media)
+                compound_clips["selectedMedia"].append(media)
         return compound_clips
 
     def is_interlaced(self, fieldType: str):

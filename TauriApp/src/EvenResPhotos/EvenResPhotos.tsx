@@ -1,7 +1,3 @@
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useResolveContext } from "@/ResolveContext";
 import { DataTable } from "../components/ui/data-table";
 import { columns } from "./columns";
 import { useEffect, useState } from "react";
@@ -9,7 +5,7 @@ import { Convert as ConvertOddResMedia, SelectedMediaElement } from "@/jsonParse
 import { Convert as ConvertConversionResults, ConversionResult } from "@/jsonParse/ConversionResult";
 import { getObjectFromPythonSidecar } from "@/lib/utils";
 import LoadingStatus from "@/LoadingStatus";
-
+import ScopeSelector from "@/components/ScopeSelector"
 async function getData(projOrTimelineSelected: string): Promise<SelectedMediaElement[]> {
   // Determine the argument based on the selected radio option
   const dataKey = projOrTimelineSelected === "timeline" ? ["oddResInTimeline"] : ["oddResInProject"];
@@ -26,75 +22,6 @@ async function getData(projOrTimelineSelected: string): Promise<SelectedMediaEle
   }
 }
 
-
-interface ProjectInfoProps {
-  setShowDataTable: (value: boolean) => void;
-  projOrTimelineSelected: string;
-  setProjOrTimelineSelected: (value: string) => void;
-}
-
-const ProjectInfo: React.FC<ProjectInfoProps> = ({ setShowDataTable, projOrTimelineSelected, setProjOrTimelineSelected }) => {
-  const context = useResolveContext();
-  const { currentProject, currentTimeline } = context || {};
-
-  useEffect(() => {
-    if (currentTimeline === "") {
-      setProjOrTimelineSelected("project");
-    }
-  }, [currentTimeline]);
-
-  return (
-    <>
-      <div className="flex justify-center select-none">
-        <h2 className="dark:text-slate-300 text-sm px-5 italic">
-          Current Project: {currentProject}
-        </h2>
-        <h2 className="dark:text-slate-300 text-sm px-5 italic">
-          Current Timeline: {currentTimeline}
-        </h2>
-      </div>
-      <div className="flex justify-center select-none">
-        <div className="flex m-2 w-1/2 justify-around bg-slate-50/60 dark:bg-slate-800 rounded dark:text-white">
-          <RadioGroup
-            defaultValue="project"
-            value={projOrTimelineSelected}
-            onValueChange={(value) => {
-              setProjOrTimelineSelected(value);
-            }}
-            className="p-5"
-          >
-            <h2 className="font-semibold">
-              Where to Look For Odd Resolution Media
-            </h2>
-            <div className="flex items-center gap-1">
-              <RadioGroupItem value="project" id="project" />
-              <Label htmlFor="r1">Project-wide</Label>
-            </div>
-            <div className="flex items-center gap-1">
-              <RadioGroupItem
-                value="timeline"
-                id="timeline"
-                disabled={currentTimeline === ""}
-              />
-              <Label htmlFor="r2">Current Timeline</Label>
-            </div>
-          </RadioGroup>
-        </div>
-      </div>
-      <div className="flex justify-center p-5">
-        <Button
-          onClick={() => {
-            setShowDataTable(true);
-          }}
-        >
-          Run
-        </Button>
-      </div>
-    </>
-  );
-};
-
-// Main component
 function EvenResPhotos() {
   const [showDataTable, setShowDataTable] = useState(false);
   const [tableData, setTableData] = useState<SelectedMediaElement[] | null>(null);
@@ -174,10 +101,13 @@ function EvenResPhotos() {
               <DataTable
                 columns={columns}
                 data={tableData}
-                buttonLabel="Convert Selected Photos"
-                buttonFunction={convertSelectedPhotos}
+                buttonProps={{
+                  buttonLabel: "Convert Selected Photos",
+                  buttonFunction: convertSelectedPhotos
+                }}
                 rowSelection={rowSelection}
                 setRowSelection={setRowSelection}
+                navigatePath="/photos"
               />
             )}
           </div>
@@ -185,7 +115,7 @@ function EvenResPhotos() {
           <LoadingStatus loadingText="Finding odd resolution photos" />
         )
       ) : (
-        <ProjectInfo setShowDataTable={setShowDataTable} projOrTimelineSelected={projOrTimelineSelected} setProjOrTimelineSelected={setProjOrTimelineSelected} />
+        <ScopeSelector setShowDataTable={setShowDataTable} projOrTimelineSelected={projOrTimelineSelected} setProjOrTimelineSelected={setProjOrTimelineSelected} typeOfMediaDisplayString="Odd Resolution Media"/>
       )}
     </>
   );

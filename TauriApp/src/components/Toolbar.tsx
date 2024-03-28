@@ -14,7 +14,7 @@ function Toolbar({
         defaultValue={defaultValue}
         className="w-[400] px-10 pt-10 pb-0 lg:px-20 lg:pt-20"
       >
-        <TabsList className="grid w-full grid-cols-2 h-12">
+        <TabsList className="grid w-full grid-cols-3 h-12">
           <TabsTrigger
             value="photos"
             className="text-lg"
@@ -29,9 +29,16 @@ function Toolbar({
           >
             Identify Interlaced Footage
           </TabsTrigger>
+          <TabsTrigger
+            value="compound"
+            className="text-lg"
+            onClick={() => onViewChange("compound")}
+          >
+            Identify Compound Clips
+          </TabsTrigger>
         </TabsList>
       </Tabs>
-      <div className="grid w-full grid-cols-2 pt-2 pb-10 px-10">
+      <div className="grid w-full grid-cols-3 pt-2 pb-10 px-10">
         <Popover>
           <PopoverTrigger>
             <InfoCircledIcon className="text-slate-400" />
@@ -57,8 +64,20 @@ function Toolbar({
               Interlaced footage often needs special care from the colorist.
               <br />
               <br />
-              This tool allow allows you to identify interlaced clips in your
-              timeline quickly and optionally assign a color to these clips.
+              This tool allows you to identify interlaced footage quickly.
+            </h3>
+          </PopoverContent>
+        </Popover>
+        <Popover>
+          <PopoverTrigger>
+            <InfoCircledIcon className="text-slate-400" />
+          </PopoverTrigger>
+          <PopoverContent align="start">
+            <h3 className="text-sm break-words">
+              Compound clips can require special care from the colorist.
+              <br />
+              <br />
+              This tool allows you to identify compound clips quickly.
             </h3>
           </PopoverContent>
         </Popover>
