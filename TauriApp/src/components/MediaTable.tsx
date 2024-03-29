@@ -3,13 +3,15 @@ import { DataTable } from "../components/ui/data-table";
 import LoadingStatus from "@/LoadingStatus";
 import ScopeSelector from "@/components/ScopeSelector";
 import { getObjectFromPythonSidecar } from '@/lib/utils';
+import { SelectedMediaElement } from '@/jsonParse/SelectedMedia';
 
-// Updated DataFetchParameters to include separate keys for project and timeline
 type DataFetchParameters = {
     projectKey: string; // Key used when projOrTimelineSelected is 'project'
     timelineKey: string; // Key used when projOrTimelineSelected is 'timeline'
     conversionFunction: (data: any) => any;
 };
+
+export type RowSelection = { [key: number]: boolean };
 
 type MediaTableProps = {
     dataFetchParameters: DataFetchParameters;
@@ -20,6 +22,10 @@ type MediaTableProps = {
         buttonFunction: VoidFunction;
     };
     typeOfMediaDisplayString: string;
+    selection: RowSelection;
+    setSelection: React.Dispatch<React.SetStateAction<RowSelection>>;
+    tableData: SelectedMediaElement[] | null
+    setTableData: React.Dispatch<React.SetStateAction<SelectedMediaElement[] | null>>
 };
 
 const MediaTable: React.FC<MediaTableProps> = ({
@@ -27,12 +33,15 @@ const MediaTable: React.FC<MediaTableProps> = ({
     columns,
     additionalUI,
     buttonProps,
-    typeOfMediaDisplayString
+    typeOfMediaDisplayString,
+    selection,
+    setSelection,
+    tableData,
+    setTableData
 }) => {
     const [showDataTable, setShowDataTable] = useState(false);
-    const [tableData, setTableData] = useState(null);
+
     const [projOrTimelineSelected, setProjOrTimelineSelected] = useState("project");
-    const [rowSelection, setRowSelection] = useState({});
 
     const getData = async () => {
         const dataKey = projOrTimelineSelected === 'project' ? dataFetchParameters.projectKey : dataFetchParameters.timelineKey;
@@ -75,9 +84,9 @@ const MediaTable: React.FC<MediaTableProps> = ({
                         <DataTable
                             columns={columns}
                             data={tableData || []}
-                            rowSelection={rowSelection}
-                            setRowSelection={setRowSelection}
-                            buttonProps={buttonProps} // Directly passed to DataTable
+                            rowSelection={selection!}
+                            setRowSelection={setSelection!}
+                            buttonProps={buttonProps}
                         />
                         {renderAdditionalUI()}
                     </div>
