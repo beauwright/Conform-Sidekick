@@ -1,31 +1,13 @@
-import { DataTable } from "../components/ui/data-table";
 import { columns } from "./columns";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Convert as ConvertOddResMedia, SelectedMediaElement } from "@/jsonParse/SelectedMedia";
 import { Convert as ConvertConversionResults, ConversionResult } from "@/jsonParse/ConversionResult";
 import { getObjectFromPythonSidecar } from "@/lib/utils";
 import LoadingStatus from "@/LoadingStatus";
-import ScopeSelector from "@/components/ScopeSelector"
-async function getData(projOrTimelineSelected: string): Promise<SelectedMediaElement[]> {
-  // Determine the argument based on the selected radio option
-  const dataKey = projOrTimelineSelected === "timeline" ? ["oddResInTimeline"] : ["oddResInProject"];
-  try {
-    const oddResMedia = await getObjectFromPythonSidecar(
-      dataKey,
-      ConvertOddResMedia.toSelectedMedia
-    );
-    console.log("oddResMedia", oddResMedia);
-    return oddResMedia.selectedMedia;
-  } catch (error) {
-    console.log("error fetching odd res photos data", error);
-    return [];
-  }
-}
+import MediaTable from "@/components/MediaTable";
 
 function EvenResPhotos() {
-  const [showDataTable, setShowDataTable] = useState(false);
   const [tableData, setTableData] = useState<SelectedMediaElement[] | null>(null);
-  const [projOrTimelineSelected, setProjOrTimelineSelected] = useState("project");
   type RowSelection = { [key: number]: boolean };
   // Table state
   const [rowSelection, setRowSelection] = useState<RowSelection>({});
@@ -33,20 +15,6 @@ function EvenResPhotos() {
   const [isConverting, setIsConverting] = useState(false);
   const [processedCount, setProcessedCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
-
-
-
-  useEffect(() => {
-    async function fetchData() {
-      const data = await getData(projOrTimelineSelected);
-      console.log("data is", data);
-      setTableData(data);
-    }
-
-    if (showDataTable) {
-      fetchData();
-    }
-  }, [showDataTable]);
 
 
   const convertSelectedPhotos = async () => {
@@ -91,33 +59,30 @@ function EvenResPhotos() {
 
 
   return (
-    <>
-      {showDataTable ? (
-        tableData ? (
-          <div className="w-11/12 mx-auto">
-            {isConverting ? (
-              <LoadingStatus loadingText={`${processedCount}/${totalCount} photos converted (${processedCount / totalCount * 100}%)`} />
-            ) : (
-              <DataTable
-                columns={columns}
-                data={tableData}
-                buttonProps={{
-                  buttonLabel: "Convert Selected Photos",
-                  buttonFunction: convertSelectedPhotos
-                }}
-                rowSelection={rowSelection}
-                setRowSelection={setRowSelection}
-              />
-            )}
-          </div>
-        ) : (
-          <LoadingStatus loadingText="Finding odd resolution photos" />
-        )
+    <div className="w-11/12 mx-auto">
+      {isConverting ? (
+        <LoadingStatus loadingText={`${processedCount}/${totalCount} photos converted (${processedCount / totalCount * 100}%)`} />
       ) : (
-        <ScopeSelector setShowDataTable={setShowDataTable} projOrTimelineSelected={projOrTimelineSelected} setProjOrTimelineSelected={setProjOrTimelineSelected} typeOfMediaDisplayString="Odd Resolution Media"/>
+        <MediaTable
+          typeOfMediaDisplayString="Odd Resolution Media"
+          dataFetchParameters={{
+            projectKey: "oddResInProject",
+            timelineKey: "oddResInTimeline",
+
+            conversionFunction: ConvertOddResMedia.toSelectedMedia,
+          }}
+          selection={rowSelection}
+          setSelection={setRowSelection}
+          columns={columns}
+          buttonProps={{
+            buttonLabel: "Convert Selected Photos",
+            buttonFunction: convertSelectedPhotos
+          }}
+          tableData={tableData}
+          setTableData={setTableData}
+        />
       )}
-    </>
+    </div>
   );
 }
-
 export default EvenResPhotos;
