@@ -4,14 +4,14 @@ import {
   Route,
   useNavigate,
 } from "react-router-dom";
-import EvenResPhotos from "./EvenResPhotos/EvenResPhotos";
+import EvenResPhotos from "./components/EvenResPhotos/EvenResPhotos";
 import NavigationTabs from "./components/NavigationTabs";
 import { useEffect, useState } from "react";
 import { Separator } from "./components/ui/separator";
 import { platform } from "@tauri-apps/api/os";
 import ConnectingStatus from "./LoadingStatus";
 import { useResolveContext } from "./ResolveContext";
-import InterlacedMedia from "./InterlacedMedia/InterlacedMedia";
+import InterlacedMedia from "./components/InterlacedMedia/InterlacedMedia";
 import CompoundClips from "./components/CompoundClips/CompoundClips";
 
 // This component needs to be a child of a Router component to work
