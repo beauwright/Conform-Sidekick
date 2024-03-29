@@ -4,6 +4,8 @@ import LoadingStatus from "@/LoadingStatus";
 import ScopeSelector from "@/components/ScopeSelector";
 import { getObjectFromPythonSidecar } from '@/lib/utils';
 import { SelectedMediaElement } from '@/jsonParse/SelectedMedia';
+import { useToast } from './ui/use-toast';
+import { Toaster } from './ui/toaster';
 
 type DataFetchParameters = {
     projectKey: string; // Key used when projOrTimelineSelected is 'project'
@@ -42,6 +44,7 @@ const MediaTable: React.FC<MediaTableProps> = ({
     const [showDataTable, setShowDataTable] = useState(false);
 
     const [projOrTimelineSelected, setProjOrTimelineSelected] = useState("project");
+    const { toast } = useToast();
 
     const getData = async () => {
         const dataKey = projOrTimelineSelected === 'project' ? dataFetchParameters.projectKey : dataFetchParameters.timelineKey;
@@ -53,7 +56,12 @@ const MediaTable: React.FC<MediaTableProps> = ({
             console.log(`${typeOfMediaDisplayString} data:`, data);
             return data.selectedMedia;
         } catch (error) {
-            console.log(`Error fetching ${typeOfMediaDisplayString.toLowerCase()} data`, error);
+            const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+            toast({
+                variant: "destructive",
+                title: `Error fetching ${typeOfMediaDisplayString.toLowerCase()} data`,
+                description: errorMessage,
+            });
             return [];
         }
     };
@@ -78,6 +86,7 @@ const MediaTable: React.FC<MediaTableProps> = ({
 
     return (
         <>
+            <Toaster />
             {showDataTable ? (
                 tableData ? (
                     <div className="w-11/12 mx-auto pb-5">
