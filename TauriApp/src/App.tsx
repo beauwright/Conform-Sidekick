@@ -12,7 +12,7 @@ import { platform } from "@tauri-apps/api/os";
 import ConnectingStatus from "./LoadingStatus";
 import { useResolveContext } from "./ResolveContext";
 import InterlacedMedia from "./InterlacedMedia/InterlacedMedia";
-import CompoundClips from "./CompoundClips/CompoundClips";
+import CompoundClips from "./components/CompoundClips/CompoundClips";
 
 // This component needs to be a child of a Router component to work
 function NavigateOnViewChange({ view }: { view: string }) {
