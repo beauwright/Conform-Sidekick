@@ -1,6 +1,7 @@
 from typing import Dict, Union
 from get_resolve import GetResolve, ResolveConnectionFailed
 import convert_photos
+from timecode import Timecode
 
 
 class ResolveController:
@@ -86,7 +87,8 @@ class ResolveController:
             for item in items:
                 mediaPoolItem = item.GetMediaPoolItem()
                 if mediaPoolItem is not None:
-                    clips_in_timeline.append((mediaPoolItem, self.frame_id_to_timecode(item.GetStart(), frame_rate)))
+                    # TODO: Determine from Resolve whether or not frame rate is drop timecode instead of hardcoding in False
+                    clips_in_timeline.append((mediaPoolItem, self.frame_id_to_timecode(frame_rate, False, item.GetStart())))
         return clips_in_timeline
 
 
@@ -145,12 +147,33 @@ class ResolveController:
         
         return odd_res_media
 
-    def frame_id_to_timecode(self, frame_id, frame_rate) -> str:
-        frames = int(frame_id % frame_rate)
-        seconds = int((frame_id // frame_rate) % 60)
-        minutes = int((frame_id // (frame_rate * 60)) % 60)
-        hours = int((frame_id // (frame_rate * 3600)) % 24)
-        return f"{hours:02d}:{minutes:02d}:{seconds:02d}:{frames:02d}"
+    def frame_id_to_timecode(self, frame_rate, drop_frame, number_of_frames):
+        """Converts frame number to a timecode string.
+
+        Args:
+            frame_rate (float): The frame rate of the video.
+            drop_frame (bool): True if using drop frame timecode; False otherwise.
+            number_of_frames (int): The total number of frames.
+
+        Returns:
+            str: The timecode string.
+        """
+        # The `timecode` library expects a string for the frame rate if drop frame timecode is used
+        if drop_frame:
+            # NTSC drop frame rates
+            if frame_rate == 29.97:
+                frame_rate_str = '29.97'
+            elif frame_rate == 59.94:
+                frame_rate_str = '59.94'
+            else:
+                raise ValueError("Unsupported drop frame rate. Supported rates: 29.97, 59.94")
+        else:
+            frame_rate_str = str(frame_rate)
+
+        # Create a Timecode instance
+        tc = Timecode(frame_rate_str, frames=number_of_frames)
+        return str(tc)
+
 
     def is_resolution_odd(self, resolution: str) -> bool:
         resolution = resolution.split("x")
