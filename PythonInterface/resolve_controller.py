@@ -80,15 +80,23 @@ class ResolveController:
             items = self.get_all_media_objects_in_timeline()
 
             frame_rate = self.project.GetSetting('timelineFrameRate')
+            drop_frame = self.project.GetSetting('timelineDropFrameTimecode')
             timeline_frame_rate = self.timeline.GetSetting("timelineFrameRate")
             if (timeline_frame_rate is not None):
                 if (timeline_frame_rate != ""):
                     frame_rate = timeline_frame_rate
+                    drop_frame = self.project.GetSetting('timelineDropFrameTimecode')
+
+            # Resolve returns a string of '0' if drop frames are not used and '1' if drop frames are used
+            if drop_frame == '1':
+                drop_frame = True
+            else:
+                drop_frame = False
+
             for item in items:
                 mediaPoolItem = item.GetMediaPoolItem()
                 if mediaPoolItem is not None:
-                    # TODO: Determine from Resolve whether or not frame rate is drop timecode instead of hardcoding in False
-                    clips_in_timeline.append((mediaPoolItem, self.frame_id_to_timecode(frame_rate, False, item.GetStart())))
+                    clips_in_timeline.append((mediaPoolItem, self.frame_id_to_timecode(frame_rate, drop_frame, item.GetStart())))
         return clips_in_timeline
 
 
