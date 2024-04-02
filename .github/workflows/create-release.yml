@@ -54,6 +54,7 @@ jobs:
           includeRelease: true
           projectPath: ./TauriApp/
           tagName: ${{ steps.extract_tag.outputs.tag }}
+          releaseName: 'Tauri ${{ steps.extract_tag.outputs.tag }} Release'
           releaseDraft: true
           prerelease: false
         env:
