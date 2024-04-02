@@ -35,9 +35,8 @@ Conform Sidekick is licensed under the [GNU GPLv3 license.](https://www.gnu.org/
 
 ### Contributing
 - **Open to Contributions**: Contributions are welcome! The project consists of two main components:
-  - **PythonInterface**: Contains the business logic, interfacing with DaVinci Resolve and handling photo conversions. This codebase operates as a sidecar application to the frontend. This file must be compiled using PyInstaller before compiling the Tauri app.
-  - **TauriApp**: The user interface, a Tauri application developed using React and TypeScript. Calls the compiled PythonInterface file for all buisness logic.
-  
+  - **Development Setup Guide**: A guide for setting up a development environment can be found [here](/TauriApp/README.md).
+
 Reach out in the Discussions page if you are interested in contributing.
 
 ### Disclaimer
