@@ -1,6 +1,7 @@
 on:
-  pull_request:
-    types: [opened, reopened]
+  push:
+    branches:
+      - main
 
 jobs:
   build:
@@ -24,27 +25,12 @@ jobs:
             New-Item -Path './PythonInterface/dist' -ItemType Directory
             cd ./PythonInterface/
             pyinstaller even_photos_resolve.py --onefile --name even_photos_resolve-x86_64-pc-windows-msvc.exe
-          } elseif ($os -eq "ubuntu-latest") {
-            New-Item -Path './PythonInterface/dist' -ItemType Directory
-            cd ./PythonInterface/
-            pyinstaller even_photos_resolve.py --onefile --name even_photos_resolve-x86_64-unknown-linux-gnu
           } elseif ($os -eq "macos-12") {
             New-Item -Path './PythonInterface/dist' -ItemType Directory
             cd ./PythonInterface/
             pyinstaller even_photos_resolve.py --onefile --name even_photos_resolve-x86_64-apple-darwin
-          } elseif ($os -eq "flyci-macos-large-latest-m2") {
-            New-Item -Path './PythonInterface/dist' -ItemType Directory
-            cd ./PythonInterface/
-            pyinstaller even_photos_resolve.py --onefile --name even_photos_resolve-aarch64-apple-darwin
           }
         shell: pwsh
-
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: Executables
-          path: ./PythonInterface/dist
-          if-no-files-found: error
 
       - name: Install dependencies (ubuntu only)
         if: matrix.os == 'ubuntu-latest'
@@ -83,11 +69,25 @@ jobs:
            prerelease: true
            projectPath: ./TauriApp/
            
-
-      # Upload Tauri Artifacts
-      - name: Upload Tauri Artifacts
-        uses: actions/upload-artifact@v3
+      # Create a GitHub Release
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: Tauri Binaries
-          path: ./TauriApp/src-tauri/target/release/bundle
-          if-no-files-found: error
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      # Upload Release Asset
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, grabs the upload_url
+          asset_path: ./TauriApp/src-tauri/target/release/bundle/*.app
+          asset_name: TauriApp-${{ matrix.os }}.zip
+          asset_content_type: application/zip
