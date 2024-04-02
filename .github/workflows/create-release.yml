@@ -47,7 +47,6 @@ jobs:
       - name: Build and Release with Tauri
         uses: tauri-apps/tauri-action@v0
         with:
-          args: build
           includeRelease: true
           projectPath: ./TauriApp/
         env:
