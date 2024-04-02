@@ -32,7 +32,7 @@ interface ScopeSelectorProps {
           </h2>
         </div>
         <div className="flex justify-center select-none">
-          <div className="flex m-2 w-1/2 justify-around bg-slate-50/60 dark:bg-slate-800 rounded dark:text-white">
+          <div className="m-2 w-[28rem] justify-around bg-slate-50/60 dark:bg-slate-800 rounded dark:text-white">
             <RadioGroup
               defaultValue="project"
               value={projOrTimelineSelected}
