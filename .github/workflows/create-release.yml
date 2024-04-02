@@ -47,8 +47,8 @@ jobs:
         with:
           includeRelease: true
           projectPath: ./TauriApp/
-          tagName: app-v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version
-          releaseName: 'App v__VERSION__'
+          tagName: v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version
+          releaseName: 'Conform Sidekick v__VERSION__'
           releaseDraft: true
           prerelease: false
         env:
