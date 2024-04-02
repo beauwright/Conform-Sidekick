@@ -13,6 +13,7 @@ function EvenResPhotos() {
   const [rowSelection, setRowSelection] = useState<RowSelection>({});
   // Conversion UI states
   const [isConverting, setIsConverting] = useState(false);
+  const [isConversionDone, setIsConversionDone] = useState(false);
   const [processedCount, setProcessedCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
 
@@ -54,6 +55,7 @@ function EvenResPhotos() {
       // When all photos are processed, update the data and indicate conversion process is done
       setTableData(updatedData);
       setIsConverting(false);
+      setIsConversionDone(true);
     }
   };
 
@@ -80,6 +82,7 @@ function EvenResPhotos() {
           }}
           tableData={tableData}
           setTableData={setTableData}
+          showDataTableProp={isConversionDone}
         />
       )}
     </div>

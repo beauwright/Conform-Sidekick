@@ -28,6 +28,7 @@ type MediaTableProps = {
     setSelection: React.Dispatch<React.SetStateAction<RowSelection>>;
     tableData: SelectedMediaElement[] | null
     setTableData: React.Dispatch<React.SetStateAction<SelectedMediaElement[] | null>>
+    showDataTableProp?: boolean;
 };
 
 const MediaTable: React.FC<MediaTableProps> = ({
@@ -39,7 +40,8 @@ const MediaTable: React.FC<MediaTableProps> = ({
     selection,
     setSelection,
     tableData,
-    setTableData
+    setTableData,
+    showDataTableProp
 }) => {
     const [showDataTable, setShowDataTable] = useState(false);
 
@@ -68,7 +70,7 @@ const MediaTable: React.FC<MediaTableProps> = ({
 
     useEffect(() => {
         async function fetchData() {
-            if (showDataTable) {
+            if (showDataTable && (showDataTableProp === undefined|| showDataTableProp===false)) {
                 const data = await getData();
                 setTableData(data);
             }
@@ -76,6 +78,12 @@ const MediaTable: React.FC<MediaTableProps> = ({
 
         fetchData();
     }, [showDataTable, projOrTimelineSelected]);
+
+    useEffect(() => {
+        if (showDataTableProp !== undefined) {
+            setShowDataTable(showDataTableProp);
+        }
+    }, [showDataTableProp]);
 
     const renderAdditionalUI = () => {
         if (typeof additionalUI === 'function') {
