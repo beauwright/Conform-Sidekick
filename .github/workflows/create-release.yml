@@ -1,7 +1,7 @@
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches:
+      - release
 
 jobs:
   build-and-release:
@@ -42,20 +42,13 @@ jobs:
           cd TauriApp
           npm install
 
-      - name: Extract Tag Name
-        id: extract_tag
-        run: echo "TAG_NAME=$(echo ${GITHUB_REF#refs/tags/})" >> $GITHUB_ENV
-        env:
-          GITHUB_REF: ${{ github.ref }}
-        
-
       - name: Build and Release with Tauri
         uses: tauri-apps/tauri-action@v0
         with:
           includeRelease: true
           projectPath: ./TauriApp/
-          tagName: ${{ env.TAG_NAME }}
-          releaseName: 'Your App ${{ env.TAG_NAME }} Release'
+          tagName: app-v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version
+          releaseName: 'App v__VERSION__'
           releaseDraft: true
           prerelease: false
         env:
