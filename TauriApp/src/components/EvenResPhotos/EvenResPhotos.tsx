@@ -63,7 +63,7 @@ function EvenResPhotos() {
   return (
     <div className="w-11/12 mx-auto">
       {isConverting ? (
-        <LoadingStatus loadingText={`${processedCount}/${totalCount} photos converted (${processedCount / totalCount * 100}%)`} />
+        <LoadingStatus loadingText={`${processedCount}/${totalCount} photos converted (${Math.round(processedCount / totalCount * 100)}%)`} />
       ) : (
         <MediaTable
           typeOfMediaDisplayString="Odd Resolution Media"
