@@ -44,17 +44,18 @@ jobs:
 
       - name: Extract Tag Name
         id: extract_tag
-        run: echo "##[set-output name=tag;]$(echo ${GITHUB_REF#refs/tags/})"
+        run: echo "TAG_NAME=$(echo ${GITHUB_REF#refs/tags/})" >> $GITHUB_ENV
         env:
           GITHUB_REF: ${{ github.ref }}
+        
 
       - name: Build and Release with Tauri
         uses: tauri-apps/tauri-action@v0
         with:
           includeRelease: true
           projectPath: ./TauriApp/
-          tagName: ${{ steps.extract_tag.outputs.tag }}
-          releaseName: 'Tauri ${{ steps.extract_tag.outputs.tag }} Release'
+          tagName: ${{ env.TAG_NAME }}
+          releaseName: 'Your App ${{ env.TAG_NAME }} Release'
           releaseDraft: true
           prerelease: false
         env:
