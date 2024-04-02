@@ -44,10 +44,19 @@ jobs:
           cd TauriApp
           npm install
 
+      - name: Extract Tag Name
+        id: extract_tag
+        run: echo "##[set-output name=tag;]$(echo ${GITHUB_REF#refs/tags/})"
+        env:
+          GITHUB_REF: ${{ github.ref }}
+
       - name: Build and Release with Tauri
         uses: tauri-apps/tauri-action@v0
         with:
           includeRelease: true
           projectPath: ./TauriApp/
+          tagName: ${{ steps.extract_tag.outputs.tag }}
+          releaseDraft: true
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
