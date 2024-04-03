@@ -1,8 +1,8 @@
-# Conform Sidekick Develop Information
+# Conform Sidekick Developer Information
 
 ## Repo overview
   - **PythonInterface**: Contains the business logic, interfacing with DaVinci Resolve and handling photo conversions. This codebase operates as a sidecar application to the frontend. This file must be compiled using PyInstaller before compiling the Tauri app.
-  - **TauriApp**: The frontend, or user interface. A Tauri application developed using React and TypeScript. Uses the  PythonInterface code for all business logic.
+  - **TauriApp**: The frontend/user interface. A Tauri application developed using React and TypeScript. Uses the  PythonInterface code for all business logic.
 
 ## Requirements
 - Node installed with version >= 18
