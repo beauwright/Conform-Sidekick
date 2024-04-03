@@ -6,7 +6,7 @@ Find the latest version to download on the [releases page](https://github.com/be
 
 ## Key Features
 
-- **Fix Odd Resolution Media**: Automatically detect media with odd numbers its resolutions that can cause failed renders when rendering at source resolution with codecs such as ProRes that do not support odd resolutions. Conform Sidekick fixes these images by stretching them by 1px to make them even resolutions. Conform Sidekick creates a new file with the adjusted image and automatically updates your DaVinci Resolve project to reference this new file. Original files remain untouched and unchanged.
+- **Fix Odd Resolution Media**: Automatically detect media with odd numbers in the height or width of the resolution that can cause failed renders when rendering at source resolution with codecs such as ProRes that do not support odd resolutions. Conform Sidekick fixes these images by stretching them by 1px to make them even resolutions. Conform Sidekick creates a new file with the adjusted image and automatically updates your DaVinci Resolve project to reference this new file. Original files remain untouched and unchanged.
 
 - **Find Interlaced Video Quickly**: Get the timecode of every interlaced video used in your current timeline.
 
