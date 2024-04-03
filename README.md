@@ -6,7 +6,7 @@ Find the latest version to download on the [releases page](https://github.com/be
 
 ## Key Features
 
-- **Fix Odd Resolution Media**: Automatically detect media with odd numbers in resolutions that can cause failed renders when rendering at source resolution with codecs such as ProRes that do not support odd resolutions. Conform Sidekick fixes these images by stretching them by 1px to make them even resolutions. Conform Sidekick creates a new file with the adjusted image and automatically updating your DaVinci Resolve project to reference this new file. Original files remain untouched and unchanged.
+- **Fix Odd Resolution Media**: Automatically detect media with odd numbers its resolutions that can cause failed renders when rendering at source resolution with codecs such as ProRes that do not support odd resolutions. Conform Sidekick fixes these images by stretching them by 1px to make them even resolutions. Conform Sidekick creates a new file with the adjusted image and automatically updates your DaVinci Resolve project to reference this new file. Original files remain untouched and unchanged.
 
 - **Find Interlaced Video Quickly**: Get the timecode of every interlaced video used in your current timeline.
 
@@ -16,9 +16,11 @@ Find the latest version to download on the [releases page](https://github.com/be
 
 ### Compatibility
 - **DaVinci Resolve Studio**: Conform Sidekick uses scripting features only found in DaVinci Resolve Studio, and is not compatible with the free version of DaVinci Resolve.
+    - Ensure external scripting is set to either local or network in Preferences/General or Conform Sidekick will fail to connect to Resolve.
 
 ### Limitations
 - **Media Conversion**: Currently, Conform Sidekick can identify odd resolutions in image sequences and video files but can only automatically adjust and replace image files.
+- The macOS build supports a non-default location for DaVinci Resolve's location as long the path to the folder containing fusionscript.so is added to PATH. The Windows build does not currently support non-standard installation locations. (Users that install DaVinci Resolve Studio normally do not need to worry about this, everything should work automatically.)
 
 ### Usage
 
@@ -34,10 +36,8 @@ Conform Sidekick is licensed under the [GNU GPLv3 license.](https://www.gnu.org/
 - **Feature Suggestions and Bug Reporting**: Please suggest features through the Discussions page and report bugs with the Issues pages.
 
 ### Contributing
-- **Open to Contributions**: Contributions are welcome! The project consists of two main components:
+- **Open to Contributions**: Contributions are welcome! Reach out in the Discussions page if you are interested in contributing.
   - **Development Setup Guide**: A guide for setting up a development environment can be found [here](/TauriApp/README.md).
-
-Reach out in the Discussions page if you are interested in contributing.
 
 ### Disclaimer
 - **Independent Development**: Conform Sidekick is independently developed and is not affiliated with Blackmagic Design or DaVinci Resolve.
