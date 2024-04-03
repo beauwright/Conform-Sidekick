@@ -104,8 +104,10 @@ class ResolveController:
         timeline_media = []
         for i in range(self.timeline.GetTrackCount("video")):
                 timeline_media.extend(self.timeline.GetItemListInTrack("video", i + 1))
-        for i in range(self.timeline.GetTrackCount("audio")):
-                timeline_media.extend(self.timeline.GetItemListInTrack("audio", i + 1))
+        # Ignore audio for now as there's no use cases for it, if audio is added,
+        # get_all_timeline_clips_with_timecode will need to be updated to prevent two timeecodes 
+        #for i in range(self.timeline.GetTrackCount("audio")):
+        #        timeline_media.extend(self.timeline.GetItemListInTrack("audio", i + 1))
         return timeline_media
 
     def get_all_interlaced_in_media_pool(self):
