@@ -1,4 +1,4 @@
-These instructions are intended to help users who have not installed DaVinci Resolve Studio in the standard location make Conform Sidekick work as intended. Users who install DaVinci Resolve Studio normally should not need to follow these instructions, Conform Sidekick automatically looks for DaVinci Resolve in the default installation location.
+These instructions are intended to help users who have not installed DaVinci Resolve Studio in the standard location help Conform Sidekick connect to DaVinci Resolve. Users who install DaVinci Resolve Studio normally should not need to follow these instructions as Conform Sidekick automatically looks for DaVinci Resolve in its default installation location.
 
 ### For macOS Users:
 
