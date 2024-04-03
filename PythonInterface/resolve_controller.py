@@ -179,7 +179,7 @@ class ResolveController:
             frame_rate_str = str(frame_rate)
 
         # Create a Timecode instance
-        tc = Timecode(frame_rate_str, frames=number_of_frames)
+        tc = Timecode(frame_rate_str, frames=number_of_frames + 1)
         return str(tc)
 
 
