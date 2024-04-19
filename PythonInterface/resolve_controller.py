@@ -14,6 +14,12 @@ class ResolveController:
             self.folder = folder
             self.bin_location = bin_location
 
+    class MediaClip:
+        def __init__(self, clip, timecode: str, track: int):
+            self.clip = clip
+            self.timecode = timecode
+            self.track = track
+
 
     def get_all_media_in_media_pool(self) -> dict[str, str]:
         all_folders = self.get_all_folders_in_project()
@@ -27,8 +33,8 @@ class ResolveController:
                 if clips_in_timeline:
                     for item in clips_in_timeline:
                         try:
-                            if clip.GetMediaId() == item[0].GetMediaId():
-                                timecodes.append(item[1])
+                            if clip.GetMediaId() == item.clip.GetMediaId():
+                                timecodes.append({"timecode": item.timecode, "track": item.track})
                         except:
                             pass
                 
@@ -73,11 +79,11 @@ class ResolveController:
                 folders_to_explore.append(self.MediaFolder(subfolder, new_bin_location))
         return all_folders
 
-    def get_all_timeline_clips_with_timecode(self):
+    def get_all_timeline_clips_with_timecode(self) -> list[MediaClip]:
         clips_in_timeline = []
 
         if self.timeline:
-            items = self.get_all_media_objects_in_timeline()
+            tuples = self.get_all_media_objects_in_timeline()
 
             frame_rate = self.project.GetSetting('timelineFrameRate')
             drop_frame = self.project.GetSetting('timelineDropFrameTimecode')
@@ -93,21 +99,23 @@ class ResolveController:
             else:
                 drop_frame = False
 
-            for item in items:
+            for tuple in tuples:
+                item = tuple[0]
                 mediaPoolItem = item.GetMediaPoolItem()
                 if mediaPoolItem is not None:
-                    clips_in_timeline.append((mediaPoolItem, self.frame_id_to_timecode(frame_rate, drop_frame, item.GetStart())))
+                    mediaClip = self.MediaClip(clip=mediaPoolItem, timecode=self.frame_id_to_timecode(frame_rate, drop_frame, item.GetStart()), track=tuple[1]['track'])
+                    clips_in_timeline.append(mediaClip)
         return clips_in_timeline
 
 
     def get_all_media_objects_in_timeline(self):
         timeline_media = []
         for i in range(self.timeline.GetTrackCount("video")):
-                timeline_media.extend(self.timeline.GetItemListInTrack("video", i + 1))
-        # Ignore audio for now as there's no use cases for it, if audio is added,
+            cur_track = self.timeline.GetItemListInTrack("video", i + 1)
+            for j in range(len(cur_track)):
+                timeline_media.append((self.timeline.GetItemListInTrack("video", i + 1)[j], {"track": i + 1}))
+        # Ignore audio tracks for now as there's no use cases for it, if audio is added,
         # get_all_timeline_clips_with_timecode will need to be updated to prevent two timeecodes 
-        #for i in range(self.timeline.GetTrackCount("audio")):
-        #        timeline_media.extend(self.timeline.GetItemListInTrack("audio", i + 1))
         return timeline_media
 
     def get_all_interlaced_in_media_pool(self):
