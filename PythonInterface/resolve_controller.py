@@ -29,12 +29,12 @@ class ResolveController:
         for folder in all_folders:
             clips = folder.folder.GetClipList()
             for clip in clips:
-                timecodes = []
+                clip_instances = []
                 if clips_in_timeline:
                     for item in clips_in_timeline:
                         try:
                             if clip.GetMediaId() == item.clip.GetMediaId():
-                                timecodes.append({"timecode": item.timecode, "track": item.track})
+                                clip_instances.append({"timecode": item.timecode, "track": item.track})
                         except:
                             pass
                 
@@ -42,7 +42,7 @@ class ResolveController:
                     "displayName": clip.GetName(),
                     "binLocation": folder.bin_location + clip.GetName(),
                     "resolution": clip.GetClipProperty("resolution"),
-                    "timecodes": timecodes,
+                    "clips": clip_instances,
                     "filepath": clip.GetClipProperty("File Path"),
                     "mediaId": clip.GetMediaId(),
                     "clipType": clip.GetClipProperty("Type"),
@@ -130,7 +130,7 @@ class ResolveController:
         all_media = self.get_all_media_in_media_pool()
         interlaced_media = {"scope": "timeline", "selectedMedia": []}
         for media in all_media["media"]:
-            if self.is_interlaced(media["fieldType"]) and media["timecodes"] != []:
+            if self.is_interlaced(media["fieldType"]) and media["clips"] != []:
                 interlaced_media["selectedMedia"].append(media)
         return interlaced_media
 
@@ -146,7 +146,7 @@ class ResolveController:
         all_media = self.get_all_media_in_media_pool()
         compound_clips = {"scope": "timeline", "selectedMedia": []}
         for media in all_media["media"]:
-            if media["clipType"] == "Compound" and media["timecodes"] != []:
+            if media["clipType"] == "Compound" and media["clips"] != []:
                 compound_clips["selectedMedia"].append(media)
         return compound_clips
 
@@ -160,7 +160,7 @@ class ResolveController:
         odd_res_media = {"scope": "timeline", "selectedMedia": []}
         
         for media in all_media["media"]:
-            if self.is_resolution_odd(media["resolution"]) and media["timecodes"] != []:
+            if self.is_resolution_odd(media["resolution"]) and media["clips"] != []:
                 odd_res_media["selectedMedia"].append(media)
         
         return odd_res_media
