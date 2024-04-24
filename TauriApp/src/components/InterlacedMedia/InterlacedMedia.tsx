@@ -1,6 +1,6 @@
 import { columns } from "./columns";
 import { useState } from "react";
-import { Convert as ConvertInterlacedMedia, SelectedMediaElement } from "@/jsonParse/SelectedMedia";
+import { SelectedMediaSchema, SelectedMediaElement } from "@/jsonParse/SelectedMedia";
 import MediaTable, { RowSelection } from "@/components/MediaTable";
 
 function InterlacedMedia() {
@@ -15,7 +15,7 @@ function InterlacedMedia() {
             projectKey: "interlacedInProject",
             timelineKey: "interlacedInTimeline",
 
-            conversionFunction: ConvertInterlacedMedia.toSelectedMedia,
+            conversionFunction: SelectedMediaSchema.parse,
           }}
           selection={rowSelection}
           setSelection={setRowSelection}

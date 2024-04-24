@@ -1,5 +1,3 @@
-"use client";
-
 import { ColumnDef } from "@tanstack/react-table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -47,19 +45,22 @@ export const columns: ColumnDef<SelectedMediaElement>[] = [
     header: "Resolution",
   },
   {
-    accessorKey: "timecodes",
-    header: "Current Timeline Timecode(s)",
+    accessorKey: "clips",
+    header: "Current Timeline Instance(s)",
     enableHiding: false,
     cell: ({ row }) => {
-      const timecodes = row.original.timecodes;
-  
-      if (timecodes.length === 0) {
-        return <Button disabled={true}>No Timecode</Button>;
+      const clips = row.original.clips;
+
+      if (clips.length === 0) {
+        return <Button disabled={true}>No Instances</Button>;
       } else {
         return (
           <>
-            {timecodes.map((tc, index) => (
-              <TimecodeButton key={index} timecode={tc} />
+            {clips.map((clip, index) => (
+              <div key={index} className="flex items-center justify-center">
+                <h3 className="text-lg pr-4">Track {clip.track}</h3>
+                <TimecodeButton timecode={clip.timecode} />
+              </div>
             ))}
           </>
         );
@@ -73,7 +74,7 @@ export const columns: ColumnDef<SelectedMediaElement>[] = [
     cell: ({ row }) => {
       let statusIcon;
       let statusMessage = row.original.statusMessage || "Status not available"; // Fallback message
-  
+
       switch (row.original.status) {
         case "Converted":
           statusIcon = "✅";
@@ -88,7 +89,7 @@ export const columns: ColumnDef<SelectedMediaElement>[] = [
           statusIcon = "❔"; // Default icon if none of the cases match
           break;
       }
-  
+
       return (
         <>
           <Popover>
@@ -100,5 +101,5 @@ export const columns: ColumnDef<SelectedMediaElement>[] = [
         </>
       );
     },
-  }  
+  }
 ];

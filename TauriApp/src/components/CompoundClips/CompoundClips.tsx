@@ -1,6 +1,6 @@
 import { columns } from "./columns";
 import { useState } from "react";
-import { Convert as ConvertCompoundClips, SelectedMediaElement } from "@/jsonParse/SelectedMedia";
+import { SelectedMediaElement, SelectedMediaSchema } from "@/jsonParse/SelectedMedia";
 import MediaTable, { RowSelection } from "@/components/MediaTable";
 
 function CompoundClips() {
@@ -14,7 +14,7 @@ function CompoundClips() {
             projectKey: "compoundClipsInProject",
             timelineKey: "compoundClipsInTimeline",
 
-            conversionFunction: ConvertCompoundClips.toSelectedMedia,
+            conversionFunction: SelectedMediaSchema.parse,
           }}
           selection={rowSelection}
           setSelection={setRowSelection}

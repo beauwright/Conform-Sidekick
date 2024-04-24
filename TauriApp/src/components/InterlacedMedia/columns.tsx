@@ -1,5 +1,3 @@
-"use client";
-
 import { ColumnDef } from "@tanstack/react-table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -42,23 +40,33 @@ export const columns: ColumnDef<SelectedMediaElement>[] = [
     header: "Field Dominance",
   },
   {
-    accessorKey: "timecodes",
-    header: "Current Timeline Timecode(s)",
+    accessorKey: "clips",
+    header: "Current Timeline Instance(s)",
     enableHiding: false,
     cell: ({ row }) => {
-      const timecodes = row.original.timecodes;
-  
-      if (timecodes.length === 0) {
-        return <Button disabled={true}>No Timecode</Button>;
+      const clips = row.original.clips;
+
+      if (clips.length === 0) {
+        return <Button disabled={true}>No Instances</Button>;
       } else {
         return (
           <>
-            {timecodes.map((tc, index) => (
-              <TimecodeButton key={index} timecode={tc} />
+            {clips.map((clip, index) => (
+              <div key={index} className="flex items-center justify-center">
+                <h3 className="text-lg pr-4">Track {clip.track}</h3>
+                <TimecodeButton timecode={clip.timecode} />
+              </div>
             ))}
           </>
         );
       }
     },
+  },
+  {
+    id: 'track',
+    header: 'Track',
+    accessorFn: (originalRow) => originalRow.clips.map(clip => clip.track),
+    cell: ({ getValue }) => getValue().join(", "),
+    filterFn: 'rangeFilter',  // Reference the new filter function here
   }
 ];

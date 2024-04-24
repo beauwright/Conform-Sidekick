@@ -1,4 +1,3 @@
-"use client";
 import {
   useNavigate,
 } from "react-router-dom";
@@ -25,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { TrackFilter } from "./track-filter";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -69,6 +69,17 @@ export function DataTable<TData, TValue>({
       columnVisibility,
       rowSelection,
     },
+    filterFns: {
+      rangeFilter: (row, columnId, filterValue) => {
+        // Ensure filter values are defined and are numbers
+        if (filterValue && !isNaN(filterValue.from) && !isNaN(filterValue.to)) {
+          return row.getValue(columnId).some(track =>
+              track >= parseInt(filterValue.from, 10) && track <= parseInt(filterValue.to, 10)
+          );
+        }
+        return true; // Return all if no filter or invalid filter is applied
+      },
+    }
   });
   const navigate = useNavigate();
   const [shouldReload, setShouldReload] = useState(false);
@@ -85,9 +96,17 @@ export function DataTable<TData, TValue>({
     }
   }, [location.pathname]);
 
+  useEffect(() => {
+    console.log('Current filters:', columnFilters);
+  }, [columnFilters]);
+  
+
   return (
     <>
       <div className="flex-1 text-sm text-muted-foreground dark:text-white break-all">
+      <div className="mb-2">
+      <TrackFilter setColumnFilters={setColumnFilters} />
+    </div>
         {table.getFilteredSelectedRowModel().rows.length} of {table.getFilteredRowModel().rows.length} row(s) selected.
       </div>
       <div className="rounded-md border dark:text-white">

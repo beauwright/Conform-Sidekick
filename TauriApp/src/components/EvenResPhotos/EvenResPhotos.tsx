@@ -1,7 +1,7 @@
 import { columns } from "./columns";
 import { useState } from "react";
-import { Convert as ConvertOddResMedia, SelectedMediaElement } from "@/jsonParse/SelectedMedia";
-import { Convert as ConvertConversionResults, ConversionResult } from "@/jsonParse/ConversionResult";
+import { SelectedMediaSchema, SelectedMediaElement } from "@/jsonParse/SelectedMedia";
+import { ConversionResultSchema, ConversionResult } from "@/jsonParse/ConversionResult";
 import { getObjectFromPythonSidecar } from "@/lib/utils";
 import LoadingStatus from "@/LoadingStatus";
 import MediaTable from "@/components/MediaTable";
@@ -30,7 +30,7 @@ function EvenResPhotos() {
         try {
           const conversionResult: ConversionResult = await getObjectFromPythonSidecar(
             ["convertOddResPhoto", "--binLocation", photo.binLocation, "--mediaId", photo.mediaId],
-            ConvertConversionResults.toConversionResult
+            ConversionResultSchema.parse
           );
 
           // Update the status in the copied data array
@@ -71,7 +71,7 @@ function EvenResPhotos() {
             projectKey: "oddResInProject",
             timelineKey: "oddResInTimeline",
 
-            conversionFunction: ConvertOddResMedia.toSelectedMedia,
+            conversionFunction: SelectedMediaSchema.parse,
           }}
           selection={rowSelection}
           setSelection={setRowSelection}

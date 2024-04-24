@@ -5,7 +5,7 @@ import {
   useEffect,
   ReactNode,
 } from "react";
-import { Convert as ConvertResolveConnections } from "./jsonParse/ResolveConnections";
+import { ResolveConnectionSchema } from "./jsonParse/ResolveConnections";
 import { getObjectFromPythonSidecar } from "./lib/utils";
 
 interface ResolveContextType {
@@ -31,7 +31,7 @@ export const ResolveProvider = ({ children }: ResolveProviderProps) => {
     let intervalId: ReturnType<typeof setInterval> | null = null;
     const fetchProjectAndTimeline = async () => {
       try {
-        const projectAndTimeline = await getObjectFromPythonSidecar(["projectAndTimeline"], ConvertResolveConnections.toResolveConnection)
+        const projectAndTimeline = await getObjectFromPythonSidecar(["projectAndTimeline"], ResolveConnectionSchema.parse)
         setCurrentProject(projectAndTimeline.projectName);
 
         if (projectAndTimeline.timelineName) {
