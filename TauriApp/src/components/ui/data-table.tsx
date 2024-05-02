@@ -1,6 +1,4 @@
-import {
-  useNavigate,
-} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -28,23 +26,25 @@ import { Button } from "@/components/ui/button";
 import { TrackFilter } from "./track-filter";
 import { SelectedMedia } from "@/jsonParse/SelectedMedia";
 
-declare module '@tanstack/table-core' {
+declare module "@tanstack/table-core" {
   interface FilterFns {
-    rangeFilter: FilterFn<SelectedMedia>
+    rangeFilter: FilterFn<SelectedMedia>;
   }
 }
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   rowSelection: { [key: string]: boolean };
-  setRowSelection: (newSelection: RowSelectionState | ((prevState: RowSelectionState) => RowSelectionState)) => void;
+  setRowSelection: (
+    newSelection:
+      | RowSelectionState
+      | ((prevState: RowSelectionState) => RowSelectionState)
+  ) => void;
   buttonProps?: {
     buttonLabel: string;
     buttonFunction: VoidFunction;
   };
 }
-
-
 
 export function DataTable<TData, TValue>({
   columns,
@@ -81,13 +81,15 @@ export function DataTable<TData, TValue>({
         // Ensure filter values are defined and are numbers
         const tracks: number[] = row.getValue(columnId) as number[];
         if (filterValue && !isNaN(filterValue.from) && !isNaN(filterValue.to)) {
-          return tracks.some(track =>
-              track >= parseInt(filterValue.from, 10) && track <= parseInt(filterValue.to, 10)
+          return tracks.some(
+            (track) =>
+              track >= parseInt(filterValue.from, 10) &&
+              track <= parseInt(filterValue.to, 10)
           );
         }
         return true; // Return all if no filter or invalid filter is applied
       },
-    }
+    },
   });
   const navigate = useNavigate();
   const [shouldReload, setShouldReload] = useState(false);
@@ -105,17 +107,17 @@ export function DataTable<TData, TValue>({
   }, [location.pathname]);
 
   useEffect(() => {
-    console.log('Current filters:', columnFilters);
+    console.log("Current filters:", columnFilters);
   }, [columnFilters]);
-  
 
   return (
     <>
-      <div className="flex-1 text-sm text-muted-foreground dark:text-white break-all">
-      <div className="mb-2">
-      <TrackFilter setColumnFilters={setColumnFilters} />
-    </div>
-        {table.getFilteredSelectedRowModel().rows.length} of {table.getFilteredRowModel().rows.length} row(s) selected.
+      <div className="flex-1 text-sm text-muted-foreground dark:text-white mb-2">
+        <div className="mb-2">
+          <TrackFilter setColumnFilters={setColumnFilters} />
+        </div>
+        {table.getFilteredSelectedRowModel().rows.length} of{" "}
+        {table.getFilteredRowModel().rows.length} row(s) selected.
       </div>
       <div className="rounded-md border dark:text-white">
         <Table>
@@ -128,16 +130,16 @@ export function DataTable<TData, TValue>({
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
                     </TableHead>
                   );
                 })}
               </TableRow>
             ))}
           </TableHeader>
-          <TableBody>
+          <TableBody className="break-words hyphens-auto">
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
@@ -181,7 +183,13 @@ export function DataTable<TData, TValue>({
           </div>
         )}
         <div className="flex justify-center">
-          <Button variant="outline" className="m-5 dark:text-slate-200" onClick={handleGoBack}>Go back</Button>
+          <Button
+            variant="outline"
+            className="m-5 dark:text-slate-200"
+            onClick={handleGoBack}
+          >
+            Go back
+          </Button>
         </div>
       </div>
     </>
