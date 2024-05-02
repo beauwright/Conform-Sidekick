@@ -57,5 +57,20 @@ export const columns: ColumnDef<SelectedMediaElement>[] = [
         );
       }
     },
-  }
+  },
+  {
+    id: "track",
+    header: "Track(s)",
+    accessorFn: (originalRow) => {
+      // Use a Set to collect unique track numbers
+      const uniqueTracks = new Set();
+      originalRow.clips.forEach((clip) => uniqueTracks.add(clip.track));
+      return Array.from(uniqueTracks); // Convert the Set back to an array
+    },
+    cell: ({ getValue }) => {
+      const tracks: number[] = getValue() as number[];
+      return tracks.join(", ");
+    },
+    filterFn: "rangeFilter",
+  },
 ];

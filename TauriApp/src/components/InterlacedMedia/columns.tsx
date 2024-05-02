@@ -53,7 +53,7 @@ export const columns: ColumnDef<SelectedMediaElement>[] = [
           <>
             {clips.map((clip, index) => (
               <div key={index} className="flex items-center justify-center">
-                <h3 className="text-lg pr-4">Track {clip.track}</h3>
+                <h3 className="pr-4">Track {clip.track}</h3>
                 <TimecodeButton timecode={clip.timecode} />
               </div>
             ))}
@@ -63,10 +63,18 @@ export const columns: ColumnDef<SelectedMediaElement>[] = [
     },
   },
   {
-    id: 'track',
-    header: 'Track',
-    accessorFn: (originalRow) => originalRow.clips.map(clip => clip.track),
-    cell: ({ getValue }) => getValue().join(", "),
-    filterFn: 'rangeFilter',  // Reference the new filter function here
-  }
+    id: "track",
+    header: "Track(s)",
+    accessorFn: (originalRow) => {
+      // Use a Set to collect unique track numbers
+      const uniqueTracks = new Set();
+      originalRow.clips.forEach((clip) => uniqueTracks.add(clip.track));
+      return Array.from(uniqueTracks); // Convert the Set back to an array
+    },
+    cell: ({ getValue }) => {
+      const tracks: number[] = getValue() as number[];
+      return tracks.join(", ");
+    },
+    filterFn: "rangeFilter",
+  },
 ];

@@ -68,6 +68,22 @@ export const columns: ColumnDef<SelectedMediaElement>[] = [
     },
   },
   {
+    id: "track",
+    header: "Track(s)",
+    accessorFn: (originalRow) => {
+      // Use a Set to collect unique track numbers
+      const uniqueTracks = new Set();
+      originalRow.clips.forEach((clip) => uniqueTracks.add(clip.track));
+      return Array.from(uniqueTracks); // Convert the Set back to an array
+    },
+    cell: ({ getValue }) => {
+      // Explicitly cast the type of getValue() to number[]
+      const tracks: number[] = getValue() as number[];
+      return tracks.join(", ");
+    },
+    filterFn: "rangeFilter",
+  },
+  {
     id: "status",
     header: "Status",
     enableHiding: false,
@@ -94,12 +110,10 @@ export const columns: ColumnDef<SelectedMediaElement>[] = [
         <>
           <Popover>
             <PopoverTrigger>{statusIcon}</PopoverTrigger>
-            <PopoverContent className="mx-5">
-              {statusMessage}
-            </PopoverContent>
+            <PopoverContent className="mx-5">{statusMessage}</PopoverContent>
           </Popover>
         </>
       );
     },
-  }
+  },
 ];

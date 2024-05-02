@@ -43,7 +43,7 @@ export const ResolveProvider = ({ children }: ResolveProviderProps) => {
         setCurrentProject("");
         console.log(error);
       }
-      console.log("after assignments to state", Date.now().toString())
+      //console.log("after assignments to state", Date.now().toString())
     };
 
     fetchProjectAndTimeline(); // Initial fetch

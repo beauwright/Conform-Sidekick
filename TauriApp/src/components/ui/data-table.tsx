@@ -4,6 +4,7 @@ import {
 import {
   ColumnDef,
   ColumnFiltersState,
+  FilterFn,
   RowSelectionState,
   SortingState,
   VisibilityState,
@@ -25,7 +26,13 @@ import {
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { TrackFilter } from "./track-filter";
+import { SelectedMedia } from "@/jsonParse/SelectedMedia";
 
+declare module '@tanstack/table-core' {
+  interface FilterFns {
+    rangeFilter: FilterFn<SelectedMedia>
+  }
+}
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
@@ -72,8 +79,9 @@ export function DataTable<TData, TValue>({
     filterFns: {
       rangeFilter: (row, columnId, filterValue) => {
         // Ensure filter values are defined and are numbers
+        const tracks: number[] = row.getValue(columnId) as number[];
         if (filterValue && !isNaN(filterValue.from) && !isNaN(filterValue.to)) {
-          return row.getValue(columnId).some(track =>
+          return tracks.some(track =>
               track >= parseInt(filterValue.from, 10) && track <= parseInt(filterValue.to, 10)
           );
         }
