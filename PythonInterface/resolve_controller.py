@@ -37,10 +37,16 @@ class ResolveController:
                                 clip_instances.append({"timecode": item.timecode, "track": item.track})
                         except:
                             pass
-                
+                # There should be a / added before the clip name unless we're at the root
+                clip_bin_location = ""
+                if folder.bin_location == "/":
+                    clip_bin_location = folder.bin_location + clip.GetName()
+                else:
+                    clip_bin_location = folder.bin_location + "/" + clip.GetName()
+
                 all_media["media"].append({
                     "displayName": clip.GetName(),
-                    "binLocation": folder.bin_location + clip.GetName(),
+                    "binLocation": clip_bin_location,
                     "resolution": clip.GetClipProperty("resolution"),
                     "clips": clip_instances,
                     "filepath": clip.GetClipProperty("File Path"),
