@@ -139,7 +139,7 @@ export function DataTable<TData, TValue>({
               </TableRow>
             ))}
           </TableHeader>
-          <TableBody className="break-words hyphens-auto">
+          <TableBody className="[overflow-wrap:anywhere] hyphens-auto max-w-fit">
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow

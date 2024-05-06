@@ -49,7 +49,7 @@ export const columns: ColumnDef<SelectedMediaElement>[] = [
           <>
             {clips.map((clip, index) => (
               <div key={index} className="flex items-center justify-center">
-                <h3 className="text-lg pr-4">Track {clip.track}</h3>
+                <h3 className="pr-4 min-w-16">Track {clip.track}</h3>
                 <TimecodeButton timecode={clip.timecode} />
               </div>
             ))}
