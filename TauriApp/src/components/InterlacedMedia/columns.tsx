@@ -3,6 +3,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { SelectedMediaElement } from "@/jsonParse/SelectedMedia";
 import TimecodeButton from "@/components/TimecodeButton";
+import { ArrowUpDown } from "lucide-react";
 
 export const columns: ColumnDef<SelectedMediaElement>[] = [
   {
@@ -24,24 +25,64 @@ export const columns: ColumnDef<SelectedMediaElement>[] = [
         aria-label="Select row"
       />
     ),
-    enableSorting: false,
+    enableSorting: true,
     enableHiding: false,
   },
   {
     accessorKey: "displayName",
-    header: "Name",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Name
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
   },
   {
     accessorKey: "binLocation",
-    header: "Media Pool Location",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Media Pool Location
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
   },
   {
     accessorKey: "fieldType",
-    header: "Field Dominance",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Field Dominance
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
   },
   {
     accessorKey: "clips",
-    header: "Current Timeline Instance(s)",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Current Timeline Instance(s)
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
     enableHiding: false,
     cell: ({ row }) => {
       const clips = row.original.clips;
@@ -64,7 +105,17 @@ export const columns: ColumnDef<SelectedMediaElement>[] = [
   },
   {
     id: "track",
-    header: "Track(s)",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Track(s)
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
     accessorFn: (originalRow) => {
       // Use a Set to collect unique track numbers
       const uniqueTracks = new Set();
