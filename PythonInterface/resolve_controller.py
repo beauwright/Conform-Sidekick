@@ -225,7 +225,10 @@ class ResolveController:
         bin_directory = ""
         for index, sub_path in enumerate(bin_location_parts):
             if index != len(bin_location_parts) - 1:
-                bin_directory = bin_directory + "/" + sub_path
+                if bin_directory == "/" or sub_path == "/":
+                    bin_directory = bin_directory + sub_path
+                else:
+                    bin_directory = bin_directory + "/" + sub_path
         file_name = bin_location_parts[-1]
 
         # Search through all folders for matching bin paths
