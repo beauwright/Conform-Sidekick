@@ -88,7 +88,14 @@ export const columns: ColumnDef<SelectedMediaElement>[] = [
       const clips = row.original.clips;
 
       if (clips.length === 0) {
-        return <Button disabled={true}>No Instances</Button>;
+        return (
+          <>
+            <div className="flex items-center justify-center">
+              <div className="pr-4 min-w-16" />
+              <Button className="my-1 mr-1 w-32" disabled={true}>No Instances</Button>
+            </div>
+          </>
+        );
       } else {
         return (
           <>
