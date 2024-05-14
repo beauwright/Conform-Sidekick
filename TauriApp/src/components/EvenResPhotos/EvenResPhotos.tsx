@@ -26,7 +26,7 @@ function EvenResPhotos() {
       setIsConverting(true); // Indicate conversion process is starting
       const updatedData = [...tableData]; // Make a shallow copy of the table data
 
-      for (const [index, photo] of selectedRows.entries()) {
+      for (const [, photo] of selectedRows.entries()) {
         try {
           const conversionResult: ConversionResult = await getObjectFromPythonSidecar(
             ["convertOddResPhoto", "--binLocation", photo.binLocation, "--mediaId", photo.mediaId],
