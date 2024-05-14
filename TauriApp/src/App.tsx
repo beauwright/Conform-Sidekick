@@ -13,6 +13,7 @@ import ConnectingStatus from "./LoadingStatus";
 import { useResolveContext } from "./ResolveContext";
 import InterlacedMedia from "./components/InterlacedMedia/InterlacedMedia";
 import CompoundClips from "./components/CompoundClips/CompoundClips";
+import Licenses from "./licenses";
 
 // This component needs to be a child of a Router component to work
 function NavigateOnViewChange({ view }: { view: string }) {
@@ -25,6 +26,8 @@ function NavigateOnViewChange({ view }: { view: string }) {
       navigate("/interlaced");
     } else if (view === "compound") {
       navigate("/compound")
+    } else if (view === "licenses") {
+      navigate('/licenses')
     }
   }, [view, navigate]);
 
@@ -76,6 +79,10 @@ export function App() {
                 <Route
                   path="/compound"
                   element={<CompoundClips />}
+                />
+                <Route
+                  path="/licenses"
+                  element={<Licenses />}
                 />
               </Routes>
             </Router>
