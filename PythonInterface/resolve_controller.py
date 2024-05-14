@@ -90,14 +90,15 @@ class ResolveController:
 
         if self.timeline:
             tuples = self.get_all_media_objects_in_timeline()
-
+            # First load the project timeline framerate and drop frame setting
             frame_rate = self.project.GetSetting('timelineFrameRate')
             drop_frame = self.project.GetSetting('timelineDropFrameTimecode')
+            # Then check if there is a timeline-specific timeline framerate and drop frame setting to use instead
             timeline_frame_rate = self.timeline.GetSetting("timelineFrameRate")
             if (timeline_frame_rate is not None):
                 if (timeline_frame_rate != ""):
                     frame_rate = timeline_frame_rate
-                    drop_frame = self.project.GetSetting('timelineDropFrameTimecode')
+                    drop_frame = self.timeline.GetSetting('timelineDropFrameTimecode')
 
             # Resolve returns a string of '0' if drop frames are not used and '1' if drop frames are used
             if drop_frame == '1':
