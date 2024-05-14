@@ -50,6 +50,8 @@ const MediaTable: React.FC<MediaTableProps> = ({
 
   const [projOrTimelineSelected, setProjOrTimelineSelected] =
     useState("project");
+
+  const [shouldResetMode, setShouldResetMode] = useState(false);
   const { toast } = useToast();
 
   const getData = async () => {
@@ -103,6 +105,14 @@ const MediaTable: React.FC<MediaTableProps> = ({
     return additionalUI;
   };
 
+  useEffect(() => {
+    if (shouldResetMode === true) {
+      setTableData(null);
+      setShowDataTable(false);
+      setShouldResetMode(false);
+    }
+  }, [shouldResetMode])
+
   return (
     <>
       <Toaster />
@@ -110,7 +120,7 @@ const MediaTable: React.FC<MediaTableProps> = ({
         tableData ? (
           <div className="w-11/12 mx-auto pb-5">
             <Button
-            className="my-4"
+              className="my-4"
               onClick={() => {
                 setTableData(null);
                 getData().then(setTableData);
@@ -124,6 +134,7 @@ const MediaTable: React.FC<MediaTableProps> = ({
               rowSelection={selection!}
               setRowSelection={setSelection!}
               buttonProps={buttonProps}
+              setShouldResetMode={setShouldResetMode}
             />
             {renderAdditionalUI()}
           </div>

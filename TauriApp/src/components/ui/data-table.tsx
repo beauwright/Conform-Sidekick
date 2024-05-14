@@ -1,4 +1,3 @@
-import { useNavigate } from "react-router-dom";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -21,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { TrackFilter } from "./track-filter";
 import { SelectedMedia } from "@/jsonParse/SelectedMedia";
@@ -44,6 +43,7 @@ interface DataTableProps<TData, TValue> {
     buttonLabel: string;
     buttonFunction: VoidFunction;
   };
+  setShouldResetMode: (value: boolean) => void
 }
 
 export function DataTable<TData, TValue>({
@@ -52,6 +52,7 @@ export function DataTable<TData, TValue>({
   buttonProps,
   rowSelection,
   setRowSelection,
+  setShouldResetMode
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -91,20 +92,6 @@ export function DataTable<TData, TValue>({
       },
     },
   });
-  const navigate = useNavigate();
-  const [shouldReload, setShouldReload] = useState(false);
-
-  // Function to navigate back to selection screen
-  const handleGoBack = () => {
-    setShouldReload(true);
-    navigate(-2); // Navigate back past table and loading screen
-  };
-
-  useEffect(() => {
-    if (shouldReload) {
-      setShouldReload(false); // Reset the reload trigger
-    }
-  }, [location.pathname]);
 
   useEffect(() => {
     console.log("Current filters:", columnFilters);
@@ -186,7 +173,7 @@ export function DataTable<TData, TValue>({
           <Button
             variant="outline"
             className="m-5 dark:text-slate-200"
-            onClick={handleGoBack}
+            onClick={() => {setShouldResetMode(true)}}
           >
             Go back
           </Button>
