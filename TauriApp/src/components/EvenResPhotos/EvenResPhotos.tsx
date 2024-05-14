@@ -28,6 +28,10 @@ function EvenResPhotos() {
 
       for (const [, photo] of selectedRows.entries()) {
         try {
+          if (photo.status === "Converted") {
+            continue;
+          }
+
           const conversionResult: ConversionResult = await getObjectFromPythonSidecar(
             ["convertOddResPhoto", "--binLocation", photo.binLocation, "--mediaId", photo.mediaId],
             ConversionResultSchema.parse
