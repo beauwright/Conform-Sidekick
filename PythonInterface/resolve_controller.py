@@ -191,12 +191,12 @@ class ResolveController:
                 frame_rate_str = '59.94'
             else:
                 raise ValueError("Unsupported drop frame rate. Supported rates: 29.97, 59.94")
+            tc = Timecode(frame_rate_str, frames=number_of_frames + 1, force_non_drop_frame=False)
+            return str(tc)
         else:
             frame_rate_str = str(frame_rate)
-
-        # Create a Timecode instance
-        tc = Timecode(frame_rate_str, frames=number_of_frames + 1)
-        return str(tc)
+            tc = Timecode(frame_rate_str, frames=number_of_frames + 1, force_non_drop_frame=True)
+            return str(tc)
 
 
     def is_resolution_odd(self, resolution: str) -> bool:
