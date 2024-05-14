@@ -35,17 +35,32 @@ function EvenResPhotos() {
 
           // Update the status in the copied data array
           if (conversionResult.success) {
-            updatedData[index].status = "Converted";
-            updatedData[index].statusMessage = `Converted photo located at: ${conversionResult.file_path}`;
+            for (let entry of updatedData) {
+              if (entry.mediaId == photo.mediaId) {
+                entry.status = "Converted";
+                entry.statusMessage = `Converted photo located at: ${conversionResult.file_path}`;
+                break;
+              }
+            }
           } else {
-            updatedData[index].status = "Failed";
-            if (conversionResult.error_message) {
-              updatedData[index].statusMessage = conversionResult.error_message;
+            for (let entry of updatedData) {
+              if (entry.mediaId == photo.mediaId) {
+                entry.status = "Failed";
+                if (conversionResult.error_message) {
+                  entry.statusMessage = conversionResult.error_message;
+                }
+                break;
+              }
             }
           }
         } catch (error) {
-          updatedData[index].status = "Failed";
-          updatedData[index].statusMessage = "Photo conversion process did not run as expected.";
+          for (let entry of updatedData) {
+            if (entry.mediaId == photo.mediaId) {
+              entry.status = "Failed";
+              entry.statusMessage = "Photo conversion process did not run as expected.";
+              break;
+            }
+          }
         } finally {
           // Increase the processed count each time a photo is processed
           setProcessedCount((prevCount) => prevCount + 1);
