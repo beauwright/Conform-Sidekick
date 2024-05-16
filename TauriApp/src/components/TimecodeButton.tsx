@@ -34,7 +34,7 @@ const TimecodeButton: React.FC<TimecodeButtonProps> = ({ timecode }) => {
       <Toaster />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button className="my-1 mr-1">{timecode}</Button>
+          <Button className="my-1 mr-1 w-32">{timecode}</Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           <DropdownMenuLabel>Timecode Controls</DropdownMenuLabel>

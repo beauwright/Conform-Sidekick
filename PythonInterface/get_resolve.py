@@ -2,11 +2,11 @@
 This file serves to return a DaVinci Resolve object
 """
 import sys
+import importlib.machinery
+import importlib.util
+import os
 
 def load_dynamic(module_name, file_path):
-    import importlib.machinery
-    import importlib.util
-
     module = None
     spec = None
     loader = importlib.machinery.ExtensionFileLoader(module_name, file_path)
@@ -25,7 +25,11 @@ def GetResolve():
             import fusionscript as bmd
             return bmd.scriptapp("Resolve")
         elif sys.platform.startswith("win"):
-            script_module = load_dynamic("fusionscript", "C:\\Program Files\\Blackmagic Design\\DaVinci Resolve\\fusionscript.dll")
+            fusion_script_path = os.getenv("RESOLVE_SCRIPT_LIB")
+            if fusion_script_path:
+                script_module = load_dynamic("fusionscript", fusion_script_path)
+            else:
+                script_module = load_dynamic("fusionscript", "C:\\Program Files\\Blackmagic Design\\DaVinci Resolve\\fusionscript.dll")
             return script_module.scriptapp("Resolve")
         else:
             raise ResolveConnectionFailed("Unsupported platform", 20)

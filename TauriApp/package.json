@@ -1,7 +1,7 @@
 {
   "name": "conform-sidekick",
   "private": true,
-  "version": "1.0.3",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -32,7 +32,9 @@
     "react-use-websocket": "^3.0.0",
     "socket.io-client": "^4.7.4",
     "tailwind-merge": "^2.2.1",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "tauri-plugin-window-state-api": "github:tauri-apps/tauri-plugin-window-state#v1",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^1",

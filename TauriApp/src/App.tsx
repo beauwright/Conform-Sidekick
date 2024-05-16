@@ -13,6 +13,8 @@ import ConnectingStatus from "./LoadingStatus";
 import { useResolveContext } from "./ResolveContext";
 import InterlacedMedia from "./components/InterlacedMedia/InterlacedMedia";
 import CompoundClips from "./components/CompoundClips/CompoundClips";
+import Licenses from "./licenses";
+import { listen } from "@tauri-apps/api/event";
 
 // This component needs to be a child of a Router component to work
 function NavigateOnViewChange({ view }: { view: string }) {
@@ -24,13 +26,15 @@ function NavigateOnViewChange({ view }: { view: string }) {
     } else if (view === "interlaced") {
       navigate("/interlaced");
     } else if (view === "compound") {
-      navigate("/compound")
+      navigate("/compound");
+    } else if (view === "licenses") {
+      navigate("/licenses");
     }
   }, [view, navigate]);
 
-  // Render nothing, as this component is only for redirecting when the view is changed by the Toolbar
   return null;
 }
+
 const platformName = await platform();
 
 export function App() {
@@ -40,6 +44,16 @@ export function App() {
   };
   const context = useResolveContext();
   const { currentProject } = context || {};
+
+  useEffect(() => {
+    const unlisten = listen<string>("navigate", (event) => {
+      setView(event.payload);
+    });
+
+    return () => {
+      unlisten.then((f) => f());
+    };
+  }, []);
 
   return (
     <div className="min-w-screen min-h-screen bg-white dark:bg-slate-950 cursor-default">
@@ -69,14 +83,9 @@ export function App() {
               <Routes>
                 <Route path="/" element={<></>} />
                 <Route path="/photos" element={<EvenResPhotos />} />
-                <Route
-                  path="/interlaced"
-                  element={<InterlacedMedia />}
-                />
-                <Route
-                  path="/compound"
-                  element={<CompoundClips />}
-                />
+                <Route path="/interlaced" element={<InterlacedMedia />} />
+                <Route path="/compound" element={<CompoundClips />} />
+                <Route path="/licenses" element={<Licenses />} />
               </Routes>
             </Router>
           </>
