@@ -20,7 +20,7 @@ Find the latest version to download on the [releases page](https://github.com/be
 
 ### Limitations
 - **Media Conversion**: Currently, Conform Sidekick can identify odd resolutions in image sequences and video files but can only automatically adjust and replace image files.
-- The macOS build supports a non-default location for DaVinci Resolve's location as long the path to the folder containing fusionscript.so is added to PATH. The Windows build does not currently support non-standard installation locations. (Users that install DaVinci Resolve Studio normally do not need to worry about this, everything should work automatically.)
+- To use a non-default install location for DaVinci Resolve you'll need to update your system PATH using [these instructions](./custom_location_instructions.md). (Users that install DaVinci Resolve Studio normally do not need to worry about this, everything should work automatically.)
 
 ### Usage
 
