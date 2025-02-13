@@ -16,6 +16,9 @@ fn main() {
     let menu = build_windows_menu(help_submenu);
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_os::init())
         .menu(menu)
         .on_menu_event(|event| match event.menu_item_id() {
             "help" => {
@@ -32,10 +35,13 @@ fn main() {
 #[cfg(target_os = "macos")]
 fn build_macos_menu(help_submenu: Submenu) -> Menu {
     Menu::new()
-        .add_submenu(Submenu::new("Conform Sidekick", Menu::new()
-            .add_native_item(MenuItem::Hide)
-            .add_native_item(MenuItem::Separator)
-            .add_native_item(MenuItem::Quit)))
+        .add_submenu(Submenu::new(
+            "Conform Sidekick",
+            Menu::new()
+                .add_native_item(MenuItem::Hide)
+                .add_native_item(MenuItem::Separator)
+                .add_native_item(MenuItem::Quit),
+        ))
         .add_submenu(help_submenu)
 }
 
@@ -43,7 +49,9 @@ fn build_macos_menu(help_submenu: Submenu) -> Menu {
 #[cfg(not(target_os = "macos"))]
 fn build_windows_menu(help_submenu: Submenu) -> Menu {
     Menu::new()
-        .add_submenu(Submenu::new("File", Menu::new()
-            .add_native_item(MenuItem::Quit)))
+        .add_submenu(Submenu::new(
+            "File",
+            Menu::new().add_native_item(MenuItem::Quit),
+        ))
         .add_submenu(help_submenu)
 }

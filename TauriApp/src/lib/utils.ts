@@ -1,7 +1,7 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { Command } from "@tauri-apps/api/shell";
-import { readTextFile, removeFile, BaseDirectory } from "@tauri-apps/api/fs";
+import { Command } from "@tauri-apps/plugin-shell";
+import { readTextFile, removeFile, BaseDirectory } from "@tauri-apps/plugin-fs";
 
 // tailwind merge
 export function cn(...inputs: ClassValue[]) {

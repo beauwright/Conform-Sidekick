@@ -1,4 +1,4 @@
 pillow
-pillow_heif==0.15.0
+pillow-heif==0.21.0
 pyinstaller
 timecode

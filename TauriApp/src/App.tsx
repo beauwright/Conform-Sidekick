@@ -8,7 +8,7 @@ import EvenResPhotos from "./components/EvenResPhotos/EvenResPhotos";
 import NavigationTabs from "./components/NavigationTabs";
 import { useEffect, useState } from "react";
 import { Separator } from "./components/ui/separator";
-import { platform } from "@tauri-apps/api/os";
+import { platform } from "@tauri-apps/plugin-os";
 import ConnectingStatus from "./LoadingStatus";
 import { useResolveContext } from "./ResolveContext";
 import InterlacedMedia from "./components/InterlacedMedia/InterlacedMedia";
@@ -35,7 +35,7 @@ function NavigateOnViewChange({ view }: { view: string }) {
   return null;
 }
 
-const platformName = await platform();
+const platformName: string = platform();
 
 export function App() {
   const [view, setView] = useState<string>("photos");
