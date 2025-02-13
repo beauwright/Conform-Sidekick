@@ -20,7 +20,7 @@
     - In the PythonInteface folder, run
     ```
     pip install -r requirements.txt
-    pyinstaller even_photos_resolve.py --onefile --name --name even_photos_resolve-[your platform identifier goes here]
+    pyinstaller even_photos_resolve.py --onefile --name even_photos_resolve-[your platform identifier goes here]
     ```
 
     - The platform identifier for x64 windows is x86_64-pc-windows-msvc.exe
