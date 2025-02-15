@@ -1,7 +1,7 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { Command } from "@tauri-apps/plugin-shell";
-import { readTextFile, removeFile, BaseDirectory } from "@tauri-apps/plugin-fs";
+import { readTextFile, remove, BaseDirectory } from "@tauri-apps/plugin-fs";
 
 // tailwind merge
 export function cn(...inputs: ClassValue[]) {
@@ -17,9 +17,9 @@ export async function getObjectFromPythonSidecar<T>(cmdParams: string[], convert
   //console.log("sidecar file returned result for args: ", cmdParams, "time:", new Date, "uuid: ", uuid.toString())
   //console.log("cmdParams", cmdParams, "command", command, "stdOut", output.stdout, "stdErr", output.stderr)
   const tempOutput = JSON.parse(output.stdout);
-  let json = await readTextFile(tempOutput.path, { dir: BaseDirectory.Temp });
+  let json = await readTextFile(tempOutput.path, { baseDir: BaseDirectory.Temp });
   json = JSON.parse(json);
-  await removeFile(tempOutput.path, { dir: BaseDirectory.Temp });
+  await remove(tempOutput.path, { baseDir: BaseDirectory.Temp });
   const convertedData = convertFunction(json);
 
   return convertedData;
