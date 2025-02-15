@@ -29,5 +29,8 @@
         "timecodes",
         "typs",
         "uncast"
+    ],
+    "rust-analyzer.linkedProjects": [
+        "TauriApp/src-tauri/Cargo.toml"
     ]
 }
