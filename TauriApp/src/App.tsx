@@ -15,6 +15,7 @@ import InterlacedMedia from "./components/InterlacedMedia/InterlacedMedia";
 import CompoundClips from "./components/CompoundClips/CompoundClips";
 import Licenses from "./licenses";
 import { listen } from "@tauri-apps/api/event";
+import ScaleMultiplier from "./components/ScaleMultiplier/ScaleMultiplier";
 
 // This component needs to be a child of a Router component to work
 function NavigateOnViewChange({ view }: { view: string }) {
@@ -29,6 +30,8 @@ function NavigateOnViewChange({ view }: { view: string }) {
       navigate("/compound");
     } else if (view === "licenses") {
       navigate("/licenses");
+    } else if (view === "scale-multiplier") {
+      navigate("/scale-multiplier");
     }
   }, [view, navigate]);
 
@@ -86,6 +89,7 @@ export function App() {
                 <Route path="/interlaced" element={<InterlacedMedia />} />
                 <Route path="/compound" element={<CompoundClips />} />
                 <Route path="/licenses" element={<Licenses />} />
+                <Route path="/scale-multiplier" element={<ScaleMultiplier/>} />
               </Routes>
             </Router>
           </>

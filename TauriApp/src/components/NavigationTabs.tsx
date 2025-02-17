@@ -10,29 +10,36 @@ function NavigationTabs({
     <>
       <Tabs
         defaultValue={defaultValue}
-        className="w-[400] p-10 lg:px-20 lg:pt-20"
+        className="p-10"
       >
-        <TabsList className="grid w-full grid-cols-3 md:h-12">
+        <TabsList className="w-auto flex flex-row flex-wrap h-auto max-w-fit mx-auto">
           <TabsTrigger
             value="photos"
-            className="text-sm md:text-lg"
+            className="text-sm md:text-lg w-72"
             onClick={() => onViewChange("photos")}
           >
             Fix Odd Resolution Photos
           </TabsTrigger>
           <TabsTrigger
             value="interlaced"
-            className="text-sm md:text-lg"
+            className="text-sm md:text-lg w-72"
             onClick={() => onViewChange("interlaced")}
           >
             Identify Interlaced Footage
           </TabsTrigger>
           <TabsTrigger
             value="compound"
-            className="text-sm md:text-lg"
+            className="text-sm md:text-lg w-72"
             onClick={() => onViewChange("compound")}
           >
             Identify Compound Clips
+          </TabsTrigger>
+          <TabsTrigger
+            value="scale-multiplier"
+            className="text-sm md:text-lg w-72"
+            onClick={() => onViewChange("scale-multiplier")}
+          >
+            Scale Multiplier
           </TabsTrigger>
         </TabsList>
       </Tabs>
