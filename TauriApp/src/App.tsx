@@ -58,7 +58,7 @@ export function App() {
   return (
     <div className="min-w-screen min-h-screen bg-white dark:bg-slate-950 cursor-default">
       {/*render top bar with drag region on macOS, nothing for windows/linux*/}
-      {platformName === "darwin" ? (
+      {platformName === "macos" ? (
         <div id="macOS title bar" className="mac-title-bar">
           <div
             data-tauri-drag-region
