@@ -1,5 +1,4 @@
 from typing import Dict, Union
-from get_resolve import GetResolve, ResolveConnectionFailed
 import convert_photos
 from timecode import Timecode
 

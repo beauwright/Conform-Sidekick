@@ -6,6 +6,9 @@ import os
 from get_resolve import GetResolve, ResolveConnectionFailed
 from resolve_controller import ResolveController
 
+TEMP_DIR = tempfile.gettempdir()  # Get the system temporary directory
+CONFORM_SIDEKICK_DIR = os.path.join(TEMP_DIR, 'ConformSidekick')
+
 class ResolveHelper:
     def __init__(self):
         self.resolve = self.get_resolve()
@@ -94,16 +97,29 @@ def convert_bin_path_json(resolve_helper: ResolveHelper, bin_location: str, medi
         sys.stderr.write(str(e))
         sys.exit(1)
 
+def export_timeline_otio(resolve_helper: ResolveHelper) -> str:
+    try:
+        # Ensure the ConformSidekick subfolder exists
+        os.makedirs(CONFORM_SIDEKICK_DIR, exist_ok=True)  # Create the directory if it does not exist
+        timeline_name = resolve_helper.timeline.GetName() # Get the timeline name
+        # We're using an OTIO file to export the timeline to modify it in ways the Python API doesn't support since it's the most accurate way to represent the timeline
+        file_path = os.path.join(CONFORM_SIDEKICK_DIR, f"{timeline_name}.otio")
+        # TODO: Throw an error if the timeline name is empty string of resolve returns False on the export below
+        resolve_helper.timeline.Export(file_path, resolve_helper.resolve.EXPORT_OTIO)
+        return file_path
+    
+    except Exception as e:
+        sys.stderr.write(str(e))
+        sys.exit(1)
+
 def output_json(output_data: str) -> None:
     try:
         # Ensure the ConformSidekick subfolder exists
-        temp_dir = tempfile.gettempdir()  # Get the system temporary directory
-        conform_sidekick_dir = os.path.join(temp_dir, 'ConformSidekick')
-        os.makedirs(conform_sidekick_dir, exist_ok=True)  # Create the directory if it does not exist
+        os.makedirs(CONFORM_SIDEKICK_DIR, exist_ok=True)  # Create the directory if it does not exist
 
         # Create a temp file
         tempfile_output = {"path": ""}
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json', dir=conform_sidekick_dir) as temp_file:
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json', dir=CONFORM_SIDEKICK_DIR) as temp_file:
             json.dump(output_data, temp_file, indent=4)
             tempfile_output["path"] = temp_file.name
         print(json.dumps(tempfile_output, indent=4))  # Print the path to the temp file
@@ -113,7 +129,7 @@ def output_json(output_data: str) -> None:
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Process Resolve controls.')
-    parser.add_argument('operation', type=str, choices=['projectAndTimeline', 'oddResInProject', 'oddResInTimeline', 'interlacedInProject', 'interlacedInTimeline', 'compoundClipsInProject', 'compoundClipsInTimeline', 'convertOddResPhoto', 'jumpToTimecode'],
+    parser.add_argument('operation', type=str, choices=['projectAndTimeline', 'oddResInProject', 'oddResInTimeline', 'interlacedInProject', 'interlacedInTimeline', 'compoundClipsInProject', 'compoundClipsInTimeline', 'convertOddResPhoto', 'jumpToTimecode', 'exportCurrentTimelineOTIO'],
                         help='Operation to perform')
     parser.add_argument('--binLocation', type=str, help='Bin location for the odd resolution photo to convert', required=False)
     parser.add_argument('--mediaId', type=str, help='MediaId for the odd resolution photo to convert', required=False)
@@ -158,6 +174,9 @@ def main():
                 print("Error: --tc is required for 'jumpToTimecode'")
                 sys.exit(1)
             resolve_helper.controller.go_to_timecode(args.tc)
+
+        elif args.operation == 'exportCurrentTimelineOTIO':
+            print(export_timeline_otio(resolve_helper))
 
     except Exception as e:
         sys.stderr.write(str(e))
