@@ -97,15 +97,20 @@ def convert_bin_path_json(resolve_helper: ResolveHelper, bin_location: str, medi
         sys.stderr.write(str(e))
         sys.exit(1)
 
-def export_timeline_otio(resolve_helper: ResolveHelper) -> str:
+def export_timeline_fcpxml(resolve_helper: ResolveHelper) -> str:
     try:
         # Ensure the ConformSidekick subfolder exists
         os.makedirs(CONFORM_SIDEKICK_DIR, exist_ok=True)  # Create the directory if it does not exist
         timeline_name = resolve_helper.timeline.GetName() # Get the timeline name
-        # We're using an OTIO file to export the timeline to modify it in ways the Python API doesn't support since it's the most accurate way to represent the timeline
-        file_path = os.path.join(CONFORM_SIDEKICK_DIR, f"{timeline_name}.otio")
-        # TODO: Throw an error if the timeline name is empty string of resolve returns False on the export below
-        resolve_helper.timeline.Export(file_path, resolve_helper.resolve.EXPORT_OTIO)
+        if not timeline_name or timeline_name == "":
+            raise ValueError("No timeline found to export")
+        # We're using a FCPXML file to export the timeline to modify it in ways the Python API doesn't support since it's the most accurate way to represent the timeline
+        # More recent FCPXML files are wrapped in a bundle, hence the .fcpxmld extension for the file
+        file_path = os.path.join(CONFORM_SIDEKICK_DIR, f"{timeline_name}.fcpxmld")
+        # We're using a FXPXML 1.10 export since it's the most recent version of the FCPXML format supported by Resolve's scripting API currently even though it's not the most recent version of the FCPXML format that the Resolve GUI supports
+        export_success = resolve_helper.timeline.Export(file_path, resolve_helper.resolve.EXPORT_FCPXML_1_10)
+        if not export_success:
+            raise ValueError("Resolve reported it has failed to export the timeline to FCPXML")
         return file_path
     
     except Exception as e:
@@ -129,7 +134,7 @@ def output_json(output_data: str) -> None:
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Process Resolve controls.')
-    parser.add_argument('operation', type=str, choices=['projectAndTimeline', 'oddResInProject', 'oddResInTimeline', 'interlacedInProject', 'interlacedInTimeline', 'compoundClipsInProject', 'compoundClipsInTimeline', 'convertOddResPhoto', 'jumpToTimecode', 'exportCurrentTimelineOTIO'],
+    parser.add_argument('operation', type=str, choices=['projectAndTimeline', 'oddResInProject', 'oddResInTimeline', 'interlacedInProject', 'interlacedInTimeline', 'compoundClipsInProject', 'compoundClipsInTimeline', 'convertOddResPhoto', 'jumpToTimecode', 'exportCurrentTimelineFCPXML'],
                         help='Operation to perform')
     parser.add_argument('--binLocation', type=str, help='Bin location for the odd resolution photo to convert', required=False)
     parser.add_argument('--mediaId', type=str, help='MediaId for the odd resolution photo to convert', required=False)
@@ -175,8 +180,8 @@ def main():
                 sys.exit(1)
             resolve_helper.controller.go_to_timecode(args.tc)
 
-        elif args.operation == 'exportCurrentTimelineOTIO':
-            print(export_timeline_otio(resolve_helper))
+        elif args.operation == 'exportCurrentTimelineFCPXML':
+            print(export_timeline_fcpxml(resolve_helper))
 
     except Exception as e:
         sys.stderr.write(str(e))
