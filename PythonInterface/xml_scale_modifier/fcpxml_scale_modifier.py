@@ -152,9 +152,4 @@ class FcpxmlScaleModifier(AbstractXMLScaleModifier):
                 clip.find(".//adjust-transform").attrib["scale"] = new_clip_values.scaling_x + " " + new_clip_values.scaling_y
 
     def save(self, file_path: str) -> None:
-        # Write _xml_tree to file_path
-        try:
-            self._xml_tree.write(file_path)
-            return True
-        except Exception as e:
-            return False
+        self._xml_tree.write(file_path)
