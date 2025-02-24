@@ -5,6 +5,7 @@ import sys
 import os
 from get_resolve import GetResolve, ResolveConnectionFailed
 from resolve_controller import ResolveController
+from xml_scale_modifier.fcpxml_scale_modifier import FcpxmlScaleModifier
 
 TEMP_DIR = tempfile.gettempdir()  # Get the system temporary directory
 CONFORM_SIDEKICK_DIR = os.path.join(TEMP_DIR, 'ConformSidekick')
@@ -147,12 +148,16 @@ def output_json(output_data: str) -> None:
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Process Resolve controls.')
-    parser.add_argument('operation', type=str, choices=['projectAndTimeline', 'oddResInProject', 'oddResInTimeline', 'interlacedInProject', 'interlacedInTimeline', 'compoundClipsInProject', 'compoundClipsInTimeline', 'convertOddResPhoto', 'jumpToTimecode', 'exportCurrentTimelineFCPXML', 'importFCPXML'],
+    parser.add_argument('operation', type=str, choices=['projectAndTimeline', 'oddResInProject', 'oddResInTimeline', 'interlacedInProject', 'interlacedInTimeline', 'compoundClipsInProject', 'compoundClipsInTimeline', 'convertOddResPhoto', 'jumpToTimecode', 'exportCurrentTimelineFCPXML', 'importFCPXML', 'modifyFCPXMLScaling'],
                         help='Operation to perform')
     parser.add_argument('--binLocation', type=str, help='Bin location for the odd resolution photo to convert', required=False)
     parser.add_argument('--mediaId', type=str, help='MediaId for the odd resolution photo to convert', required=False)
     parser.add_argument('--tc', type=str, help='Timecode to jump playhead to', required=False)
     parser.add_argument('--fcpxmld', type=str, help='Path to the FCPXMLD bundle containing an FCPXML file to import', required=False)
+    parser.add_argument('--scalingValue', type=str, help='Scaling value to multiply the FCPXML file with', required=False)
+    parser.add_argument('--scalingType', type=str, help='Scaling type to multiply the FCPXML file with', required=False)
+    parser.add_argument('--saveScaledFCPXMLDPath', type=str, help='Path to save the new FCPXMLD bundle containing a modified FCPXML file at', required=False)
+    parser.add_argument('--saveScaledFCPXMLDName', type=str, help='Name of the new FCPXMLD bundle containing a modified FCPXML file to save', required=False)
     return parser.parse_args()
 
 def main():
@@ -202,6 +207,22 @@ def main():
                 print("Error: --fcpxmld is required for 'importFCPXML'")
                 sys.exit(1)
             import_fcpxml(resolve_helper, args.fcpxmld)
+
+        elif args.operation == 'modifyFCPXMLScaling':
+            if not args.scalingValue or not args.saveScaledFCPXMLDPath or not args.saveScaledFCPXMLDName or not args.fcpxmld:
+                print("Error: --scalingValue, --saveScaledFCPXMLDPath, --saveScaledFCPXMLDName, and --fcpxmld are required for 'modifyFCPXMLScaling'")
+                sys.exit(1)
+            scaler = FcpxmlScaleModifier()
+            scaler.load(args.fcpxmld)
+            if args.scalingType:
+                if args.scalingType not in scaler.get_supported_scaling_types():
+                    print(f"Error: scalingType {args.scalingType} is not supported.")
+                    sys.exit(1)
+                scaler.multiply_all_scaling_and_pos_values_of_scaling_type(args.scalingValue, args.scalingType)
+            else:
+                scaler.multiply_all_scaling_and_pos_values(args.scalingValue)
+            scaler.save(args.saveScaledFCPXMLDPath, args.saveScaledFCPXMLDName)
+                
 
     except Exception as e:
         sys.stderr.write(str(e))
