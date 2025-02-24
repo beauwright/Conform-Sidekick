@@ -166,6 +166,7 @@ class FcpxmlScaleModifier(AbstractXMLScaleModifier):
                 clip.find(".//adjust-transform").attrib["scale"] = f"{new_clip_values.scaling_x} {new_clip_values.scaling_y}"
 
     def save(self, save_dir_path: str, file_name: str) -> str:
-        os.mkdir(save_dir_path)
-        new_file = os.path.join(save_dir_path, f"{file_name}.fcpxmld", "Info.fcpxml")
+        bundle_dir = os.path.join(save_dir_path, f"{file_name}.fcpxmld")
+        os.mkdir(bundle_dir)
+        new_file = os.path.join(bundle_dir, "Info.fcpxml")
         self._xml_tree.write(new_file)
