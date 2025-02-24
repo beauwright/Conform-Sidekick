@@ -135,6 +135,14 @@ class FcpxmlScaleModifier(AbstractXMLScaleModifier):
         for clip in clips:
             self._multiply_xml_clip_scaling_and_pos_values(clip, multiply_value)
 
+    def _find_xml_clip_from_clip_id(self, clip_id: str) -> ET.Element:
+        clips = self._get_xml_clips(self._xml_tree.getroot())
+        for clip in clips:
+            current_clip_id = self._generate_clip_id(clip)
+            if current_clip_id == clip_id:
+                return clip
+        raise ValueError(f"Clip with ID {clip_id} not found.")
+
     def multiply_all_scaling_and_pos_values_of_scaling_type(self, multiply_value: str, scaling_type: str) -> None:
         # Check given scaling type is supported
         if scaling_type not in self.supported_scaling_types:
@@ -144,10 +152,11 @@ class FcpxmlScaleModifier(AbstractXMLScaleModifier):
         for clip in clips:
             # If the clip scaling type matches
             if clip.scaling_type == scaling_type:
-                self._multiply_xml_clip_scaling_and_pos_values(clip, multiply_value)
+                xml_clip = self._find_xml_clip_from_clip_id(clip.clip_id)
+                self._multiply_xml_clip_scaling_and_pos_values(xml_clip, multiply_value)
             # If the clip is using the project scaling type and the project scaling type matches
             elif scaling_type == "unknown" and self.project_scaling_type == scaling_type:
-                self._multiply_xml_clip_scaling_and_pos_values(clip, multiply_value)
+                self._multiply_xml_clip_scaling_and_pos_values(xml_clip, multiply_value)
 
     def multiply_scaling_and_pos_value_for_clip_ids(self, multiply_value: str, clip_ids: list[str]) -> None:
         clips = self._get_xml_clips(self._xml_tree.getroot())
