@@ -5,8 +5,9 @@ import os
 class FcpxmlScaleModifier(AbstractXMLScaleModifier):
     def __init__(self):
         self.clips = []
-        # TODO: Check actual supported scaling types
-        self.supported_scaling_types = ["fit", "fill"]
+        # none is the equivalent of Premiere's standard scaling type and DaVinci's crop scaling type
+        # unknown is used when the scaling type is not specified in the XML
+        self.supported_scaling_types = ["fit", "fill", "none", "unknown"]
         self._xml_tree = None
         self.timeline_name = None
 
@@ -17,12 +18,8 @@ class FcpxmlScaleModifier(AbstractXMLScaleModifier):
 
     def _ingest_fcpxml(self, fcpxml: str) -> None:
         """Parse the fcpxml file."""
-        # Read the XML file
-        file = open(fcpxml, "r")
-        data = file.read()
-        file.close()
         # Parse the XML file
-        self._xml_tree = ET.parse(data)
+        self._xml_tree = ET.parse(fcpxml)
         # Get the root of the XML tree
         root = self._xml_tree.getroot()
         # Verify that the XML is a fcpxml file
@@ -38,7 +35,7 @@ class FcpxmlScaleModifier(AbstractXMLScaleModifier):
     def _get_xml_sequences(self, root: ET.Element) -> list[ET.Element]:
         """Get all sequence elements in the XML."""
         # Find all sequence elements in the XML
-        sequences = root.findall(".//sequence")
+        sequences = root.findall(".//library/event/project/sequence")
         if len(sequences) == 0:
             raise ValueError("No sequences found in the XML file.")
         return sequences
@@ -56,7 +53,8 @@ class FcpxmlScaleModifier(AbstractXMLScaleModifier):
         sequences = self._get_xml_sequences(root)
 
         # Find all clip elements in the first sequence
-        clips = sequences[0].findall(".//clip")
+        clips = sequences[0].findall(".//asset-clip")
+        clips.extend(sequences[0].findall(".//clip"))
         if len(clips) == 0:
             raise ValueError("No clips found in the XML file.")
         
@@ -72,8 +70,11 @@ class FcpxmlScaleModifier(AbstractXMLScaleModifier):
         for clip in clips:
             clip_id = self._generate_clip_id(clip)
             clip_name = clip.attrib["name"]
-            scaling_type = clip.find(".//adjust-conform").attrib["type"]
-
+            try:
+                scaling_type = clip.find(".//adjust-conform").attrib["type"]
+            except AttributeError:
+                # Scaling is only specified for clips not using the project scaling type
+                scaling_type = "unknown"
             _pos_string = clip.find(".//adjust-transform").attrib["position"]
             pos_x, pos_y = _pos_string.split()
             
@@ -86,7 +87,7 @@ class FcpxmlScaleModifier(AbstractXMLScaleModifier):
             self.clips.append(Clip(clip_id, clip_name, scaling_type, scaling_x, scaling_y, pos_x, pos_y, anchor_x, anchor_y))
 
     def _generate_clip_id(self, Element: ET.Element) -> str:
-        return Element.attrib["offset"]+Element.attrib["format"]+Element.attrib["ref"]+Element.attrib["duration"]
+        return f"{Element.attrib["offset"]} {Element.attrib["format"]} {Element.attrib["start"]} {Element.attrib["duration"]}"
 
     def load(self, file_path: str) -> None:
         fcpxml = self._pull_fcpxml_from_bundle(file_path)
@@ -115,13 +116,13 @@ class FcpxmlScaleModifier(AbstractXMLScaleModifier):
             scaling_x = str(float(scaling_x) * float(multiply_value))
             scaling_y = str(float(scaling_y) * float(multiply_value))
 
-            clip.find(".//adjust-transform").attrib["position"] = pos_x + " " + pos_y
-            clip.find(".//adjust-transform").attrib["anchor"] = anchor_x + " " + anchor_y
-            clip.find(".//adjust-transform").attrib["scale"] = scaling_x + " " + scaling_y
+            clip.find(".//adjust-transform").attrib["position"] = f"{pos_x} {pos_y}"
+            clip.find(".//adjust-transform").attrib["anchor"] = f"{anchor_x} {anchor_y}"
+            clip.find(".//adjust-transform").attrib["scale"] = f"{scaling_x} {scaling_y}"
+
 
     def multiply_all_scaling_and_pos_values(self, multiply_value: str) -> None:
-        clips = self.get_all_clips()
-        
+        clips = self._get_xml_clips(self._xml_tree.getroot())        
         for clip in clips:
             self._multiply_xml_clip_scaling_and_pos_values(clip, multiply_value)
 
@@ -147,9 +148,9 @@ class FcpxmlScaleModifier(AbstractXMLScaleModifier):
         for clip in clips:
             current_clip_id = self._generate_clip_id(clip)
             if current_clip_id == clip_id:
-                clip.find(".//adjust-transform").attrib["position"] = new_clip_values.pos_x + " " + new_clip_values.pos_y
-                clip.find(".//adjust-transform").attrib["anchor"] = new_clip_values.anchor_x + " " + new_clip_values.anchor_y
-                clip.find(".//adjust-transform").attrib["scale"] = new_clip_values.scaling_x + " " + new_clip_values.scaling_y
+                clip.find(".//adjust-transform").attrib["position"] = f"{new_clip_values.pos_x} {new_clip_values.pos_y}"
+                clip.find(".//adjust-transform").attrib["anchor"] = f"{new_clip_values.anchor_x} {new_clip_values.anchor_y}"
+                clip.find(".//adjust-transform").attrib["scale"] = f"{new_clip_values.scaling_x} {new_clip_values.scaling_y}"
 
     def save(self, file_path: str) -> None:
         self._xml_tree.write(file_path)
