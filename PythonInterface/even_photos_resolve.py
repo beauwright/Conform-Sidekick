@@ -97,7 +97,7 @@ def convert_bin_path_json(resolve_helper: ResolveHelper, bin_location: str, medi
         sys.stderr.write(str(e))
         sys.exit(1)
 
-def export_timeline_fcpxml(resolve_helper: ResolveHelper) -> str:
+def export_timeline_fcpxml(resolve_helper: ResolveHelper) -> None:
     try:
         # Ensure the ConformSidekick subfolder exists
         os.makedirs(CONFORM_SIDEKICK_DIR, exist_ok=True)  # Create the directory if it does not exist
@@ -111,8 +111,21 @@ def export_timeline_fcpxml(resolve_helper: ResolveHelper) -> str:
         export_success = resolve_helper.timeline.Export(file_path, resolve_helper.resolve.EXPORT_FCPXML_1_10)
         if not export_success:
             raise ValueError("Resolve reported it has failed to export the timeline to FCPXML")
-        return file_path
+        output_json({"success": True, "path": file_path})
     
+    except Exception as e:
+        sys.stderr.write(str(e))
+        sys.exit(1)
+
+def import_fcpxml(resolve_helper: ResolveHelper, fcpxml_path: str) -> None:
+    try:
+        if not os.path.exists(fcpxml_path):
+            raise ValueError(f"File not found: {fcpxml_path}")
+        # Import the FCPXML file
+        import_success = resolve_helper.project.GetMediaPool().ImportTimelineFromFile(fcpxml_path)
+        if import_success is None:
+            raise ValueError("Resolve reported it has failed to import the FCPXML file")
+        output_json({"success": True})
     except Exception as e:
         sys.stderr.write(str(e))
         sys.exit(1)
@@ -134,11 +147,12 @@ def output_json(output_data: str) -> None:
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Process Resolve controls.')
-    parser.add_argument('operation', type=str, choices=['projectAndTimeline', 'oddResInProject', 'oddResInTimeline', 'interlacedInProject', 'interlacedInTimeline', 'compoundClipsInProject', 'compoundClipsInTimeline', 'convertOddResPhoto', 'jumpToTimecode', 'exportCurrentTimelineFCPXML'],
+    parser.add_argument('operation', type=str, choices=['projectAndTimeline', 'oddResInProject', 'oddResInTimeline', 'interlacedInProject', 'interlacedInTimeline', 'compoundClipsInProject', 'compoundClipsInTimeline', 'convertOddResPhoto', 'jumpToTimecode', 'exportCurrentTimelineFCPXML', 'importFCPXML'],
                         help='Operation to perform')
     parser.add_argument('--binLocation', type=str, help='Bin location for the odd resolution photo to convert', required=False)
     parser.add_argument('--mediaId', type=str, help='MediaId for the odd resolution photo to convert', required=False)
     parser.add_argument('--tc', type=str, help='Timecode to jump playhead to', required=False)
+    parser.add_argument('--fcpxmld', type=str, help='Path to the FCPXMLD bundle containing an FCPXML file to import', required=False)
     return parser.parse_args()
 
 def main():
@@ -181,7 +195,13 @@ def main():
             resolve_helper.controller.go_to_timecode(args.tc)
 
         elif args.operation == 'exportCurrentTimelineFCPXML':
-            print(export_timeline_fcpxml(resolve_helper))
+            export_timeline_fcpxml(resolve_helper)
+
+        elif args.operation == 'importFCPXML':
+            if not args.fcpxmld:
+                print("Error: --fcpxmld is required for 'importFCPXML'")
+                sys.exit(1)
+            import_fcpxml(resolve_helper, args.fcpxmld)
 
     except Exception as e:
         sys.stderr.write(str(e))
