@@ -6,10 +6,11 @@ class FcpxmlScaleModifier(AbstractXMLScaleModifier):
     def __init__(self):
         self.clips = []
         # none is the equivalent of Premiere's standard scaling type and DaVinci's crop scaling type
-        # unknown is used when the scaling type is not specified in the XML
+        # unknown is used when the scaling type is not specified in the XML, will be treated as "fit" unless otherwise specified by the project scaling type
         self.supported_scaling_types = ["fit", "fill", "none", "unknown"]
         self._xml_tree = None
         self.timeline_name = None
+        self.project_scaling_type = "fit"
 
     def _pull_fcpxml_from_bundle(self, file_path: str) -> str:
         """Pull the fcpxml file from the bundle."""
@@ -95,6 +96,14 @@ class FcpxmlScaleModifier(AbstractXMLScaleModifier):
 
     def get_supported_scaling_types(self) -> list[str]:
         return self.supported_scaling_types
+    
+    def set_project_scaling_type(self, scaling_type: str) -> None:
+        if scaling_type not in self.supported_scaling_types:
+            raise ValueError(f"Scaling type {scaling_type} is not supported.")
+        self.project_scaling_type = scaling_type
+
+    def get_project_scaling_type(self) -> str:
+        return self.project_scaling_type
 
     def get_all_clips(self) -> Clip:
         """Returns all clip IDs in the XML."""
@@ -133,7 +142,11 @@ class FcpxmlScaleModifier(AbstractXMLScaleModifier):
         
         clips = self.get_all_clips()
         for clip in clips:
+            # If the clip scaling type matches
             if clip.scaling_type == scaling_type:
+                self._multiply_xml_clip_scaling_and_pos_values(clip, multiply_value)
+            # If the clip is using the project scaling type and the project scaling type matches
+            elif scaling_type == "unknown" and self.project_scaling_type == scaling_type:
                 self._multiply_xml_clip_scaling_and_pos_values(clip, multiply_value)
 
     def multiply_scaling_and_pos_value_for_clip_ids(self, multiply_value: str, clip_ids: list[str]) -> None:
@@ -152,5 +165,7 @@ class FcpxmlScaleModifier(AbstractXMLScaleModifier):
                 clip.find(".//adjust-transform").attrib["anchor"] = f"{new_clip_values.anchor_x} {new_clip_values.anchor_y}"
                 clip.find(".//adjust-transform").attrib["scale"] = f"{new_clip_values.scaling_x} {new_clip_values.scaling_y}"
 
-    def save(self, file_path: str) -> None:
-        self._xml_tree.write(file_path)
+    def save(self, save_dir_path: str, file_name: str) -> str:
+        os.mkdir(save_dir_path)
+        new_file = os.path.join(save_dir_path, f"{file_name}.fcpxmld", "Info.fcpxml")
+        self._xml_tree.write(new_file)

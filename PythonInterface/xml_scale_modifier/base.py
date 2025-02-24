@@ -18,7 +18,7 @@ class Clip:
 class AbstractXMLScaleModifier(ABC):
     @abstractmethod
     def load(self, file_path: str) -> None:
-        """Load an XML file. Returns True if the load was successful, False otherwise."""
+        """Load a XML file.."""
         pass
 
     @abstractmethod
@@ -52,6 +52,6 @@ class AbstractXMLScaleModifier(ABC):
         pass
 
     @abstractmethod
-    def save(self, file_path: str) -> None:
-        """Save the modified XML to a file. Returns True if the save was successful, False otherwise."""
+    def save(self, save_dir_path: str, file_name: str) -> str:
+        """Save the modified XML to a file located in the save_dir_path with the name of file_name. Returns the path of the saved file."""
         pass
