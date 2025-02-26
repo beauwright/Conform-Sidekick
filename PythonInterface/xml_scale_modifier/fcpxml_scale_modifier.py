@@ -1,3 +1,4 @@
+import uuid
 from .base import AbstractXMLScaleModifier, Clip
 import xml.etree.ElementTree as ET
 import os
@@ -9,7 +10,6 @@ class FcpxmlScaleModifier(AbstractXMLScaleModifier):
         # unknown is used when the scaling type is not specified in the XML, will be treated as "fit" unless otherwise specified by the project scaling type
         self.supported_scaling_types = ["fit", "fill", "none", "unknown"]
         self._xml_tree = None
-        self.timeline_name = None
         self.project_scaling_type = "fit"
 
     def _pull_fcpxml_from_bundle(self, file_path: str) -> str:
@@ -40,13 +40,6 @@ class FcpxmlScaleModifier(AbstractXMLScaleModifier):
         if len(sequences) == 0:
             raise ValueError("No sequences found in the XML file.")
         return sequences
-
-    def _populate_timeline_name(self, root: ET.Element) -> None:
-        """Get the timeline name from the XML."""
-        # Find all sequence elements in the XML
-        sequences = self._get_xml_sequences(root)
-        # Get the timeline name from the first sequence 
-        self.timeline_name = sequences[0].attrib["name"]
 
     def _get_xml_clips(self, root: ET.Element) -> list[ET.Element]:
         """Get all clip elements in the XML."""
@@ -179,3 +172,4 @@ class FcpxmlScaleModifier(AbstractXMLScaleModifier):
         os.mkdir(bundle_dir)
         new_file = os.path.join(bundle_dir, "Info.fcpxml")
         self._xml_tree.write(new_file)
+        return bundle_dir

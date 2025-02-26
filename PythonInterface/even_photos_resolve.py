@@ -3,6 +3,7 @@ import json
 import tempfile
 import sys
 import os
+import uuid
 from get_resolve import GetResolve, ResolveConnectionFailed
 from resolve_controller import ResolveController
 from xml_scale_modifier.fcpxml_scale_modifier import FcpxmlScaleModifier
@@ -29,6 +30,10 @@ class ResolveHelper:
             return project_manager.GetCurrentProject()
         except AttributeError:
             raise ResolveConnectionFailed
+        
+    def get_current_project_media_pool(self):
+        current_project = self.get_current_project()
+        return current_project.GetMediaPool()
 
     def get_current_timeline(self):
         try:
@@ -104,28 +109,36 @@ def export_timeline_fcpxml(resolve_helper: ResolveHelper) -> None:
         os.makedirs(CONFORM_SIDEKICK_DIR, exist_ok=True)  # Create the directory if it does not exist
         timeline_name = resolve_helper.timeline.GetName() # Get the timeline name
         if not timeline_name or timeline_name == "":
-            raise ValueError("No timeline found to export")
+            output_json({"success": False, "error_message": "No timeline is currently open in Resolve to export"})
+            return
         # We're using a FCPXML file to export the timeline to modify it in ways the Python API doesn't support since it's the most accurate way to represent the timeline
         # More recent FCPXML files are wrapped in a bundle, hence the .fcpxmld extension for the file
-        file_path = os.path.join(CONFORM_SIDEKICK_DIR, f"{timeline_name}.fcpxmld")
+        file_path = os.path.join(CONFORM_SIDEKICK_DIR, f"{timeline_name}_{uuid.uuid4()}.fcpxmld")
         # We're using a FXPXML 1.10 export since it's the most recent version of the FCPXML format supported by Resolve's scripting API currently even though it's not the most recent version of the FCPXML format that the Resolve GUI supports
         export_success = resolve_helper.timeline.Export(file_path, resolve_helper.resolve.EXPORT_FCPXML_1_10)
         if not export_success:
-            raise ValueError("Resolve reported it has failed to export the timeline to FCPXML")
-        output_json({"success": True, "path": file_path})
+            output_json({"success": False, "error_message": "Resolve reported it has failed to export the timeline to FCPXML"})
+            return
+        output_json({"success": True, "file_path": file_path})
     
     except Exception as e:
         sys.stderr.write(str(e))
         sys.exit(1)
 
-def import_fcpxml(resolve_helper: ResolveHelper, fcpxml_path: str) -> None:
+def import_fcpxml(resolve_helper: ResolveHelper, fcpxml_path: str, timeline_name: str | None) -> None:
     try:
         if not os.path.exists(fcpxml_path):
-            raise ValueError(f"File not found: {fcpxml_path}")
+            output_json({"success": False, "error_message": f"File provided to import was not found: {fcpxml_path}"})
         # Import the FCPXML file
-        import_success = resolve_helper.project.GetMediaPool().ImportTimelineFromFile(fcpxml_path)
-        if import_success is None:
-            raise ValueError("Resolve reported it has failed to import the FCPXML file")
+        media_pool = resolve_helper.get_current_project_media_pool()
+        if timeline_name:
+            timeline_name = f"{timeline_name}"
+        else:
+            timeline_name = f"{uuid.uuid4()}"
+        imported_timeline = media_pool.ImportTimelineFromFile(fcpxml_path, {"timelineName": timeline_name})
+        if imported_timeline is None:
+            output_json({"success": False, "error_message": f"Resolve reported it failed to import the XML at: {fcpxml_path}. Ensure the timeline name in the XML does not conflict with an existing timeline name."})
+            sys.exit(1)
         output_json({"success": True})
     except Exception as e:
         sys.stderr.write(str(e))
@@ -158,6 +171,7 @@ def parse_arguments():
     parser.add_argument('--scalingType', type=str, help='Scaling type to multiply the FCPXML file with', required=False)
     parser.add_argument('--saveScaledFCPXMLDPath', type=str, help='Path to save the new FCPXMLD bundle containing a modified FCPXML file at', required=False)
     parser.add_argument('--saveScaledFCPXMLDName', type=str, help='Name of the new FCPXMLD bundle containing a modified FCPXML file to save', required=False)
+    parser.add_argument('--timelineName', type=str, help='Name to use for the timeline when importing a timeline')
     return parser.parse_args()
 
 def main():
@@ -204,9 +218,12 @@ def main():
 
         elif args.operation == 'importFCPXML':
             if not args.fcpxmld:
-                print("Error: --fcpxmld is required for 'importFCPXML'")
+                output_json({"success": False, "error_message": "--fcpxmld is required for 'importFCPXML"})
                 sys.exit(1)
-            import_fcpxml(resolve_helper, args.fcpxmld)
+            timeline_name = None
+            if args.timelineName:
+                timeline_name = args.timelineName
+            import_fcpxml(resolve_helper, args.fcpxmld, timeline_name)
 
         elif args.operation == 'modifyFCPXMLScaling':
             if not args.scalingValue or not args.saveScaledFCPXMLDPath or not args.saveScaledFCPXMLDName or not args.fcpxmld:
@@ -216,12 +233,13 @@ def main():
             scaler.load(args.fcpxmld)
             if args.scalingType:
                 if args.scalingType not in scaler.get_supported_scaling_types():
-                    print(f"Error: scalingType {args.scalingType} is not supported.")
+                    output_json({"success": False, "error_message": f"Error: scalingType {args.scalingType} is not supported."})
                     sys.exit(1)
                 scaler.multiply_all_scaling_and_pos_values_of_scaling_type(args.scalingValue, args.scalingType)
             else:
                 scaler.multiply_all_scaling_and_pos_values(args.scalingValue)
-            scaler.save(args.saveScaledFCPXMLDPath, args.saveScaledFCPXMLDName)
+            new_file_path = scaler.save(args.saveScaledFCPXMLDPath, args.saveScaledFCPXMLDName)
+            output_json({"success": True, "file_path": new_file_path})
                 
 
     except Exception as e:
