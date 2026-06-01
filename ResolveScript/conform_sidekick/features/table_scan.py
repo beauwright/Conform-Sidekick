@@ -48,7 +48,7 @@ class TableScanFeature(Feature):
             [
                 ui.Label({"Text": self.intro, "Weight": 0}),
                 ui.HGroup(
-                    {"Spacing": 8, "Weight": 0, "MinimumSize": [0, 44]},
+                    ui_kit.button_row_props(),
                     [
                         ui.Label(
                             {"Text": "Scope:", "Weight": 0, "MinimumSize": [60, 0]}
@@ -58,13 +58,15 @@ class TableScanFeature(Feature):
                              "MinimumSize": [220, 26], "MaximumSize": [320, 26]}
                         ),
                         ui.HGap(16, 0.0),
-                        ui.Button(
+                        ui_kit.action_button(
+                            ui,
                             {"ID": self.wid("Scan"), "Text": "Scan", "Default": True,
-                             "MinimumSize": [120, 34], "Weight": 0}
+                             "MinimumSize": [88, 0]},
                         ),
-                        ui.Button(
+                        ui_kit.action_button(
+                            ui,
                             {"ID": self.wid("Cancel"), "Text": "Cancel",
-                             "Enabled": False, "MinimumSize": [110, 34], "Weight": 0}
+                             "Enabled": False, "MinimumSize": [80, 0]},
                         ),
                         ui.HGap(0, 1.0),
                     ],
@@ -77,7 +79,7 @@ class TableScanFeature(Feature):
                     {"ID": self.wid("Tree"), "Weight": 1, "SortingEnabled": True}
                 ),
                 ui.HGroup(
-                    {"Spacing": 8, "Weight": 0, "MinimumSize": [0, 44]},
+                    ui_kit.button_row_props(),
                     [
                         ui.Label({"Text": "Selected:", "Weight": 0,
                                   "MinimumSize": [70, 0]}),
@@ -85,13 +87,15 @@ class TableScanFeature(Feature):
                             {"ID": self.wid("SelTC"), "Text": "\u2014", "Weight": 0,
                              "MinimumSize": [130, 0], "StyleSheet": "font-weight: bold;"}
                         ),
-                        ui.Button(
+                        ui_kit.action_button(
+                            ui,
                             {"ID": self.wid("GoTC"), "Text": "Go to Timecode",
-                             "Enabled": False, "Weight": 0, "MinimumSize": [150, 34]}
+                             "Enabled": False, "MinimumSize": [120, 0]},
                         ),
-                        ui.Button(
+                        ui_kit.action_button(
+                            ui,
                             {"ID": self.wid("CopyTC"), "Text": "Copy Timecode",
-                             "Enabled": False, "Weight": 0, "MinimumSize": [150, 34]}
+                             "Enabled": False, "MinimumSize": [120, 0]},
                         ),
                         ui.HGap(0, 1.0),
                     ],

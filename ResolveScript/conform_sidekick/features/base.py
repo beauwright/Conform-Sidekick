@@ -17,13 +17,17 @@ class AppContext:
         self.dispatcher = conn.dispatcher
         self.win = None
         self.items = None
+        # Nav tree visible label -> feature id or @category (see ui_kit.populate_nav_tree).
+        self.nav_tree_key_by_label = {}
 
 
 class Feature:
-    """Base class. Subclasses set ``id``/``title`` and implement the panel."""
+    """Base class. Subclasses set ``id``/``title``/``category`` and implement the panel."""
 
     id = ""
     title = ""
+    # Nav grouping: ``conform``, ``edit``, or ``color`` (see ``features.CATEGORIES``).
+    category = "conform"
 
     def wid(self, name: str) -> str:
         """Namespace a widget id to this feature."""

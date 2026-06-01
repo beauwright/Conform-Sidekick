@@ -11,6 +11,7 @@ from .table_scan import TableScanFeature
 class InterlacedFeature(TableScanFeature):
     id = "interlaced"
     title = "Identify Interlaced"
+    category = "conform"
     intro = "Find interlaced (Upper/Lower field) media."
     noun_plural = "interlaced instance(s)"
     columns = ["Name", "Bin Location", "Resolution", "Field", "Track", "Timecode"]

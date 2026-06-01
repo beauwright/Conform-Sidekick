@@ -7,107 +7,128 @@ This branch replaces the Tauri (Rust + React/TypeScript) desktop app with a
 It also folds in three additional features ported from the
 `davinci-resolve-scripts` repo (Rename Clips From Markers, Lay Matching Bin
 Clips, Bulk Enable/Disable Color Nodes), so all six tools live behind one
-window with a tab per feature.
+window with a sidebar navigator.
+
+## Requirements
+
+- **DaVinci Resolve Studio** — the scripting API (Python/Lua, media pool,
+  timeline control, `ReplaceClip`, and UIManager script windows) is not
+  available on the free edition. Conform Sidekick is intended for Studio only.
 
 ## Why native?
 
 - No separate app to alt-tab to; it lives in Resolve.
 - In-process, so no "Connecting to DaVinci Resolve" step and far fewer
   connection failure modes than the old external sidecar.
-- No code-signing / notarization pipeline.
-- Likely works on the free version of Resolve as well (running from the Scripts
-  menu is not "external scripting"). **Verify which calls are Studio-gated**
-  before promising this - `MediaPoolItem.ReplaceClip` in particular.
+- No code-signing / notarization pipeline for the main app (one small optional
+  image helper binary may still be shipped for Pillow-free Resolve Python).
 
 ## Architecture
 
 ```
-ResolveScript/                         # this is what gets installed into Resolve
-  Conform Sidekick.py                  # thin launcher (the menu entry)
-  conform_sidekick/                    # shared package, all logic
-    __init__.py                        # puts _vendor/ on sys.path
-    app.py                             # builds the tabbed window + dispatcher loop
-    resolve_conn.py                    # connect to resolve/fusion/ui/dispatcher
-    resolve_api.py                     # media-pool / timeline queries (ex-ResolveController)
-    timecode_utils.py                  # frame <-> TC via the timecode library
-    ui_kit.py                          # log panel, pump, run/cancel, Tree helpers
-    state.py                           # persisted per-feature UI state
-    timeline_filters.py                # shared track/index/layer/In-Out parsing
+ResolveScript/                         # install into Resolve Scripts/Utility/
+  Conform Sidekick.py                  # thin launcher (menu entry)
+  helpers/                             # optional: PyInstaller image helper exe(s)
+  conform_sidekick/
+    app.py                             # window + sidebar nav + dispatcher loop
+    resolve_conn.py                    # resolve / fusion / ui / dispatcher
+    resolve_api.py                     # media-pool / timeline queries
+    timecode_utils.py                  # frame <-> TC via vendored timecode lib
+    ui_kit.py                          # log panel, pump, buttons, Tree helpers
+    state.py                           # per-feature persisted UI state
+    timeline_filters.py                # shared track / In-Out / regex helpers
     features/
-      base.py                          # Feature interface + AppContext
-      table_scan.py                    # base: scan -> Tree -> jump to timecode
-      log_feature.py                   # base: form + log + Run/Cancel
-      interlaced.py                    # scan-table feature
-      compound_clips.py                # scan-table feature
-      odd_res_photos.py                # scan-table + convert/ReplaceClip
-      rename_from_markers.py           # log feature
-      lay_matching_clips.py            # log feature
-      bulk_node_enable.py              # log feature
-    ops/                               # UI-agnostic ported core operations
-      rename_markers.py
-      bulk_nodes.py
-      lay_clips.py                     # timecode math via the timecode library
-      odd_res.py                       # 1px stretch (Pillow when available)
-    _vendor/
-      timecode/                        # vendored pure-Python dependency
+      table_scan.py                    # scan -> Tree -> Go/Copy timecode
+      log_feature.py                   # form + log + Run/Cancel
+      interlaced.py / compound_clips.py / odd_res_photos.py
+      rename_from_markers.py / lay_matching_clips.py / bulk_node_enable.py
+    ops/
+      odd_res.py                       # 1px stretch (Pillow or helper exe)
+    _vendor/timecode/                  # vendored pure-Python dependency
 ```
 
 ### Two Python environments (dependency strategy)
 
-1. **The in-Resolve script** runs in Resolve's own interpreter. Pure-Python
-   dependencies are **vendored** as source (`_vendor/timecode`) so they import
-   without anyone running `pip`.
-2. **The image helper** (still TODO) is a small **bundled executable** built
-   from `PythonInterface/convert_photos.py` via PyInstaller, carrying the
-   compiled `Pillow` / `pillow_heif`. The odd-resolution feature shells out to
-   it for the 1px stretch, then calls `ReplaceClip` natively. This is the only
-   bundled binary; everything else is plain Python source.
+1. **In-Resolve script** — runs in Resolve's bundled Python. Pure-Python deps are
+   **vendored** as source (`_vendor/timecode`) so nothing requires `pip` in
+   Resolve.
+2. **Image helper (optional)** — a small **PyInstaller one-file executable** built
+   from `PythonInterface/convert_photos_cli.py` (same logic as
+   `PythonInterface/convert_photos.py`, with Pillow + pillow_heif bundled).
+   Used only when Pillow is not importable inside Resolve's Python. Odd-res
+   detection and `ReplaceClip` still run in-process; the helper only writes
+   the stretched file beside the original.
 
-Rule of thumb: pure-Python dep → vendor it; compiled dep → push the feature
-that needs it into a bundled helper and bundle only what that helper uses.
+Rule of thumb: pure-Python dep → vendor it; compiled dep → bundle a helper exe.
 
 ### Timecode
 
-All timecode-string / fps-dependent conversions go through `timecode_utils`
-(the `timecode` library), **not** hand-rolled SMPTE math. This is the intended
-fix for the drop-frame / off-by-one bugs seen in the Lay Matching Bin Clips
-reconform feature; its `_tc_to_frames` / Start-TC remap will be reworked onto
-`timecode` during the port.
+All timecode / fps conversions go through `timecode_utils` (the `timecode`
+library), not hand-rolled SMPTE math — especially for Lay Matching Bin Clips.
 
 ## Status
 
-- ✅ Package scaffold, vendored `timecode`, shared UI kit, ported media queries.
-- ✅ All six tabs are implemented:
-  - **Identify Interlaced** / **Identify Compound Clips** - scope selector → Tree
-    → select a row and Go to / Copy Timecode (double-click a row to jump).
-  - **Fix Odd Resolution Photos** - scan, then Convert All Listed / Convert
-    Selected (1px stretch + `ReplaceClip`).
-  - **Rename Clips From Markers**, **Lay Matching Bin Clips**, **Bulk
-    Enable/Disable Nodes** - form inputs + live log + Run/Cancel, ported from the
-    davinci-resolve-scripts.
-- ⚠️ The odd-resolution conversion uses Pillow when it's importable in Resolve's
-  Python; bundling the image helper for a Pillow-free Resolve Python is still a
-  packaging TODO. `ReplaceClip` may also require Resolve Studio.
+- ✅ All six tools implemented and verified on Resolve Studio.
+- ✅ Responsive/cancellable project & timeline scans; sidebar navigation.
+- ⚠️ **Image helper** — in-process Pillow works when Resolve's Python has it;
+  otherwise install a built helper under `ResolveScript/helpers/` (see below).
 
 ## Install (development)
 
-Copy or symlink the `ResolveScript` contents into Resolve's Scripts folder:
+Copy or symlink the `ResolveScript` folder contents into Resolve's Scripts
+folder:
 
 - **Windows:** `%APPDATA%\Blackmagic Design\DaVinci Resolve\Support\Fusion\Scripts\Utility\`
 - **macOS:** `~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Fusion/Scripts/Utility/`
 - **Linux:** `~/.local/share/DaVinciResolve/Fusion/Scripts/Utility/`
 
-Both `Conform Sidekick.py` **and** the `conform_sidekick/` package must sit in
-that `Utility/` folder. Then launch via **Workspace → Scripts → Utility →
-Conform Sidekick** (restart Resolve or use Scripts → Reload if available).
+Both `Conform Sidekick.py` and the `conform_sidekick/` package must live in
+`Utility/`. If you use junctions/symlinks for dev, also link **`helpers/`**
+(see `link_to_resolve.ps1`). Launch via **Workspace → Scripts → Utility →
+Conform Sidekick**.
 
-For end users, the plan is to keep shipping a one-click installer (reusing the
-GitHub release pipeline) whose only job is to copy these files + the image
-helper into that folder, so the "download, double-click, open from the menu"
-experience is preserved.
+### Optional: image helper
 
-## Open items to verify in Resolve
+If **Fix Odd Resolution Photos** reports that Pillow is unavailable, build and
+copy the helper:
 
-- `ui.Tree` checkbox + sorting behaviour on the target Resolve build.
-- Panel `Hidden`-toggle tab switching (isolated to `app._make_show_panel`).
-- Which APIs are Studio-only (esp. `ReplaceClip`).
+```powershell
+cd PythonInterface
+pip install -r requirements.txt
+.\build_convert_photos_helper.ps1
+```
+
+Then copy the file from `PythonInterface/dist/` into `ResolveScript/helpers/`
+next to your installed script (create `helpers/` if needed). On macOS/Linux use
+`build_convert_photos_helper.sh` instead.
+
+The odd-res feature looks for these names (first match wins):
+
+| Platform | Filenames searched |
+|----------|-------------------|
+| Windows | `convert_photos_helper.exe`, `convert_photos_helper-x86_64-pc-windows-msvc.exe` |
+| macOS | `convert_photos_helper`, `convert_photos_helper-x86_64-apple-darwin` |
+| Linux | `convert_photos_helper`, `convert_photos_helper-x86_64-unknown-linux-gnu` |
+
+Search paths: `helpers/` under the install folder, the install folder itself,
+or `CONFORM_SIDEKICK_HELPER` pointing at the executable.
+
+## Shipping
+
+GitHub Actions (`.github/workflows/resolve-native-release.yml`) builds per-OS
+ZIPs: script package + image helper + installer. End users extract the ZIP and
+run:
+
+- **Windows:** `Install-ConformSidekick.bat`
+- **macOS / Linux:** `./install_conform_sidekick.sh`
+
+See `installer/README.md`. Releases are published when a `v*` tag is pushed on
+this branch.
+
+## Legacy Tauri app
+
+The `TauriApp/` and `PythonInterface/even_photos_resolve.py` sidecar remain on
+`main` for reference. The resolve-native branch does not use them; odd-res
+conversion is in `conform_sidekick.ops.odd_res` with an optional
+`convert_photos` helper instead of the old all-in-one `even_photos_resolve`
+binary.

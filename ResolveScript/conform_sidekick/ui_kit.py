@@ -12,6 +12,41 @@ around their own widgets.
 import subprocess
 import sys
 
+# Compact action buttons (Resolve's UIManager defaults are tall and wide).
+BTN_HEIGHT = 26
+BTN_ROW_HEIGHT = 32
+BTN_STYLE = "font-size: 12px;"
+
+
+def button_row_props():
+    """HGroup props for a row that contains action buttons."""
+    return {"Spacing": 8, "Weight": 0, "MinimumSize": [0, BTN_ROW_HEIGHT]}
+
+
+def action_button(ui, props):
+    """Build a ``Button`` with shared compact height and font size."""
+    spec = dict(props)
+    spec.setdefault("Weight", 0)
+    style = spec.get("StyleSheet") or ""
+    if BTN_STYLE not in style:
+        spec["StyleSheet"] = (BTN_STYLE + style).strip()
+    min_size = list(spec.get("MinimumSize") or [0, BTN_HEIGHT])
+    if len(min_size) == 1:
+        min_size = [min_size[0], BTN_HEIGHT]
+    else:
+        min_size[1] = BTN_HEIGHT
+    spec["MinimumSize"] = min_size
+    max_size = spec.get("MaximumSize")
+    if max_size is None:
+        # Cap height only so labels like "Scanning..." can grow wider at runtime.
+        spec["MaximumSize"] = [16777215, BTN_HEIGHT]
+    else:
+        max_size = list(max_size)
+        if len(max_size) >= 2:
+            max_size[1] = BTN_HEIGHT
+            spec["MaximumSize"] = max_size
+    return ui.Button(spec)
+
 
 def get_event_item(ev):
     """Return the Tree item from a UIManager item event, tolerating shapes.
@@ -229,3 +264,171 @@ def add_row(tree, values):
     except Exception:
         pass
     return item
+
+
+# ---------------------------------------------------------------------------
+# Navigation sidebar tree (category -> mode hierarchy)
+# ---------------------------------------------------------------------------
+
+NAV_CATEGORY_PREFIX = "@"
+
+
+def setup_nav_tree(tree, sidebar_width=440):
+    """Single column for labels; row keys live in ``nav_tree_key_by_label``."""
+    try:
+        tree.ColumnCount = 1
+    except Exception:
+        pass
+    try:
+        header = tree.NewItem()
+        header.Text[0] = "Tools"
+        tree.SetHeaderItem(header)
+    except Exception:
+        pass
+    set_nav_tree_column_width(tree, sidebar_width)
+    try:
+        tree.SortingEnabled = False
+    except Exception:
+        pass
+
+
+def set_nav_tree_column_width(tree, sidebar_width):
+    """Set the label column wide enough that mode titles are not ellipsized."""
+    width = int(sidebar_width)
+    label_w = max(320, width - 24)
+    for _ in range(2):
+        try:
+            tree.SetColumnWidth(0, label_w)
+        except Exception:
+            pass
+
+
+def _tree_item_text(item, index, default=""):
+    if item is None:
+        return default
+    try:
+        return item.Text[index] or default
+    except Exception:
+        return default
+
+
+def _nav_register_label(key_by_label, text, key):
+    """Map visible tree text to a feature id or ``@category`` key."""
+    if key_by_label is None or not text or not key:
+        return
+    key_by_label[text] = key
+    stripped = text.strip()
+    if stripped and stripped != text:
+        key_by_label[stripped] = key
+
+
+def get_tree_current_item(tree):
+    """Return the tree's current row (event payloads often omit the item)."""
+    if tree is None:
+        return None
+    for name in ("CurrentItem", "GetCurrentItem"):
+        method = getattr(tree, name, None)
+        if callable(method):
+            try:
+                item = method()
+                if item is not None:
+                    return item
+            except Exception:
+                continue
+    return None
+
+
+def populate_nav_tree(tree, grouped, sidebar_width=440, key_by_label=None):
+    """Fill the sidebar: Conform / Edit / Color parents with mode children.
+
+    ``grouped`` is the list from :func:`features.features_by_category`. Row keys
+    (feature id or ``@<category_id>``) are stored in ``key_by_label`` by the
+    visible ``Text[0]`` string — UIManager click events use different item
+    objects than those created at populate time, so ``id(item)`` lookup fails.
+    """
+    clear_tree(tree)
+    if key_by_label is not None:
+        key_by_label.clear()
+    for cat_id, label, cat_features in grouped:
+        parent = tree.NewItem()
+        parent.Text[0] = label
+        _nav_register_label(key_by_label, label, NAV_CATEGORY_PREFIX + cat_id)
+
+        parent_added = False
+        try:
+            tree.AddTopLevelItem(parent)
+            parent_added = True
+        except Exception:
+            pass
+
+        for feature in cat_features:
+            child = tree.NewItem()
+            child.Text[0] = feature.title
+            _nav_register_label(key_by_label, feature.title, feature.id)
+
+            if parent_added:
+                attached = False
+                for method_name in ("AddChild", "InsertChild", "AddItem"):
+                    method = getattr(parent, method_name, None)
+                    if callable(method):
+                        try:
+                            method(child)
+                            attached = True
+                            break
+                        except Exception:
+                            continue
+                if not attached:
+                    flat = "    " + feature.title
+                    child.Text[0] = flat
+                    _nav_register_label(key_by_label, flat, feature.id)
+                    try:
+                        tree.AddTopLevelItem(child)
+                    except Exception:
+                        pass
+            else:
+                flat = label + " — " + feature.title
+                child.Text[0] = flat
+                _nav_register_label(key_by_label, flat, feature.id)
+                try:
+                    tree.AddTopLevelItem(child)
+                except Exception:
+                    pass
+
+        if parent_added:
+            for expand_name in ("SetExpanded", "Expand"):
+                method = getattr(parent, expand_name, None)
+                if callable(method):
+                    try:
+                        if expand_name == "SetExpanded":
+                            method(True)
+                        else:
+                            method()
+                        break
+                    except Exception:
+                        continue
+
+    set_nav_tree_column_width(tree, sidebar_width)
+
+
+def nav_tree_key(item, key_by_label=None):
+    """Return the key for a nav row (feature id or @category)."""
+    if item is None:
+        return ""
+    text = _tree_item_text(item, 0, "")
+    if not text:
+        return ""
+    if key_by_label is None:
+        return ""
+    key = key_by_label.get(text)
+    if key:
+        return key
+    stripped = text.strip()
+    key = key_by_label.get(stripped)
+    if key:
+        return key
+    if " — " in stripped:
+        suffix = stripped.split(" — ", 1)[-1].strip()
+        key = key_by_label.get(suffix)
+        if key:
+            return key
+    return ""

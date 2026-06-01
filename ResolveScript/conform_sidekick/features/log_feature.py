@@ -67,27 +67,25 @@ class LogFeature(Feature):
         )
         rows.append(
             ui.HGroup(
-                # Reserve the row height so the native buttons aren't clipped
-                # (UIManager won't grow a Weight:0 row to fit taller children).
-                {"Spacing": 8, "Weight": 0, "MinimumSize": [0, 44]},
+                ui_kit.button_row_props(),
                 [
-                    ui.Button(
+                    ui_kit.action_button(
+                        ui,
                         {
                             "ID": self.wid("Run"),
                             "Text": self.run_label,
                             "Default": True,
-                            "Weight": 0,
-                            "MinimumSize": [150, 34],
-                        }
+                            "MinimumSize": [110, 0],
+                        },
                     ),
-                    ui.Button(
+                    ui_kit.action_button(
+                        ui,
                         {
                             "ID": self.wid("Cancel"),
                             "Text": "Cancel",
                             "Enabled": False,
-                            "Weight": 0,
-                            "MinimumSize": [110, 34],
-                        }
+                            "MinimumSize": [80, 0],
+                        },
                     ),
                     ui.HGap(0, 1.0),
                 ],

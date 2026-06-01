@@ -6,9 +6,8 @@ project at the fixed file via ``MediaPoolItem.ReplaceClip``. Originals are left
 untouched.
 
 Detection is native (``ResolveAPI.find_odd_resolution``). The 1px stretch is
-done by :mod:`conform_sidekick.ops.odd_res`, which uses Pillow when it's
-importable in Resolve's Python and otherwise reports cleanly (the bundled image
-helper for a Pillow-free Resolve Python is still a packaging TODO).
+done by :mod:`conform_sidekick.ops.odd_res` (Pillow in Resolve's Python, or the
+optional PyInstaller helper in ``ResolveScript/helpers/``).
 """
 
 from .base import Feature
@@ -27,6 +26,7 @@ KEY_COL = 4
 class OddResPhotosFeature(Feature):
     id = "oddres"
     title = "Fix Odd Resolution Photos"
+    category = "conform"
 
     def __init__(self):
         self._run = ui_kit.RunState()
@@ -43,7 +43,7 @@ class OddResPhotosFeature(Feature):
                              "fix them by stretching 1px.", "Weight": 0}
                 ),
                 ui.HGroup(
-                    {"Spacing": 8, "Weight": 0, "MinimumSize": [0, 44]},
+                    ui_kit.button_row_props(),
                     [
                         ui.Label({"Text": "Scope:", "Weight": 0, "MinimumSize": [60, 0]}),
                         ui.ComboBox(
@@ -51,13 +51,15 @@ class OddResPhotosFeature(Feature):
                              "MinimumSize": [220, 26], "MaximumSize": [320, 26]}
                         ),
                         ui.HGap(16, 0.0),
-                        ui.Button(
+                        ui_kit.action_button(
+                            ui,
                             {"ID": self.wid("Scan"), "Text": "Scan", "Default": True,
-                             "MinimumSize": [120, 34], "Weight": 0}
+                             "MinimumSize": [88, 0]},
                         ),
-                        ui.Button(
+                        ui_kit.action_button(
+                            ui,
                             {"ID": self.wid("CancelScan"), "Text": "Cancel",
-                             "Enabled": False, "MinimumSize": [110, 34], "Weight": 0}
+                             "Enabled": False, "MinimumSize": [80, 0]},
                         ),
                         ui.HGap(0, 1.0),
                     ],
@@ -70,15 +72,17 @@ class OddResPhotosFeature(Feature):
                     {"ID": self.wid("Tree"), "Weight": 3, "SortingEnabled": True}
                 ),
                 ui.HGroup(
-                    {"Spacing": 8, "Weight": 0, "MinimumSize": [0, 44]},
+                    ui_kit.button_row_props(),
                     [
-                        ui.Button(
+                        ui_kit.action_button(
+                            ui,
                             {"ID": self.wid("ConvertAll"), "Text": "Convert All Listed",
-                             "Enabled": False, "Weight": 0, "MinimumSize": [170, 34]}
+                             "Enabled": False, "MinimumSize": [145, 0]},
                         ),
-                        ui.Button(
+                        ui_kit.action_button(
+                            ui,
                             {"ID": self.wid("ConvertSel"), "Text": "Convert Selected",
-                             "Enabled": False, "Weight": 0, "MinimumSize": [160, 34]}
+                             "Enabled": False, "MinimumSize": [135, 0]},
                         ),
                         ui.HGap(0, 1.0),
                     ],
@@ -281,7 +285,7 @@ class OddResPhotosFeature(Feature):
                     failed += 1
                     log_ctl.log(
                         f"  [FAIL] {name}: converted file written ({output_path}) "
-                        "but ReplaceClip failed (may require Resolve Studio)."
+                        "but ReplaceClip returned false."
                     )
                 log_ctl.pump()
 

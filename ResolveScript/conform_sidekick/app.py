@@ -1,25 +1,26 @@
 """Conform Sidekick application window.
 
-Builds a single window with a row of "tab" buttons and a stacked content area
-holding every feature's panel. Switching tabs hides all panels except the
-selected one. This keeps the "one tool, switch modes" experience users liked in
-the Tauri app while running natively inside Resolve.
-
-Tab switching relies on toggling each panel's ``Hidden`` attribute. That works
-on current Resolve builds; if a future build changes the behaviour, the toggle
-is isolated to :func:`_make_show_panel` and can be swapped for a rebuild.
+Split layout: a left sidebar ``Tree`` lists categories (Conform / Edit / Color)
+and their modes; the main area shows the active feature panel. Switching modes
+hides all panels except the selected one.
 """
 
 from . import resolve_conn
 from . import ui_kit
 from .resolve_api import ResolveAPI
-from .features import build_features
+from .features import build_features, features_by_category
 from .features.base import AppContext
 
 WINDOW_ID = "ConformSidekickWin"
+NAV_TREE_ID = "NavTree"
 
 # Padding (in px) applied on all four sides to inset all content uniformly.
 EDGE_PAD = 28
+
+# Sidebar: minimum width (px) and share of the horizontal split. UIManager often
+# ignores MinimumSize alone; Weight gives a reliable fraction of the body width.
+SIDEBAR_WIDTH = 440
+SIDEBAR_WEIGHT = 0.38
 
 
 def _pad(ui, content, pad):
@@ -48,29 +49,8 @@ def _pad(ui, content, pad):
 
 
 def _build_window(ui, dispatcher, features):
-    nav_row = [ui.HGap(0, 0.0)]
-    for feature in features:
-        nav_row.append(
-            ui.Button(
-                {
-                    "ID": f"nav.{feature.id}",
-                    "Text": feature.title,
-                    "Weight": 0,
-                    # Min width 0 lets the button size to its label so the text
-                    # isn't clipped. Height is reserved by the row's MinimumSize
-                    # (below) so the buttons sit fully inside it.
-                    "MinimumSize": [0, 30],
-                }
-            )
-        )
-    nav_row.append(ui.HGap(0, 1.0))
-
     panels = []
     for feature in features:
-        # Build every panel hidden. The active one is revealed after Show() with
-        # an explicit hidden->visible transition, which is what forces UIManager
-        # to actually lay the panel out (revealing an already-"visible" panel is
-        # a no-op and leaves it blank until the window is resized).
         panels.append(
             ui.VGroup(
                 {
@@ -82,11 +62,35 @@ def _build_window(ui, dispatcher, features):
             )
         )
 
+    body = ui.HGroup(
+        {"Spacing": 0, "Weight": 1},
+        [
+            ui.VGroup(
+                {
+                    "Spacing": 0,
+                    "Weight": SIDEBAR_WEIGHT,
+                    "MinimumSize": [SIDEBAR_WIDTH, 0],
+                },
+                [
+                    ui.Tree(
+                        {
+                            "ID": NAV_TREE_ID,
+                            "Weight": 1,
+                            "SortingEnabled": False,
+                        }
+                    ),
+                ],
+            ),
+            ui.HGap(12, 0.0),
+            ui.VGroup({"Spacing": 0, "Weight": 1}, panels),
+        ],
+    )
+
     return dispatcher.AddWindow(
         {
             "ID": WINDOW_ID,
             "WindowTitle": "Conform Sidekick",
-            "Geometry": [120, 80, 1180, 820],
+            "Geometry": [120, 80, 1320, 820],
             "Spacing": 8,
         },
         [
@@ -102,16 +106,7 @@ def _build_window(ui, dispatcher, features):
                                 "StyleSheet": "font-size: 18px; font-weight: bold;",
                             }
                         ),
-                        # The nav row needs an explicit MinimumSize height. Without
-                        # it the HGroup keeps its default height and the buttons
-                        # (drawn taller via their own MinimumSize) overflow downward
-                        # and get clipped by the content below. Sizing the row
-                        # reserves the space so the content area shifts down.
-                        ui.HGroup(
-                            {"Spacing": 6, "Weight": 0, "MinimumSize": [0, 44]},
-                            nav_row,
-                        ),
-                        ui.VGroup({"Spacing": 0, "Weight": 1}, panels),
+                        body,
                     ],
                 ),
                 EDGE_PAD,
@@ -130,8 +125,6 @@ def _make_show_panel(ctx, features):
                 panel.Hidden = feature.id != active.id
             except Exception:
                 pass
-        # UIManager doesn't relayout on a Hidden flip by itself; force it so the
-        # newly-shown panel fills the content area immediately.
         ui_kit.recalc_layout(ctx.win)
         ui_kit.pump(ctx.dispatcher)
         try:
@@ -142,16 +135,68 @@ def _make_show_panel(ctx, features):
     return show_panel
 
 
+def _make_nav_controller(ctx, grouped, features_by_id, show_panel):
+    """Sidebar tree: mode rows switch panels; category rows pick last-used mode."""
+
+    state = {
+        "active": None,
+        "last_in_category": {},
+    }
+
+    def select_feature(feature):
+        state["active"] = feature
+        state["last_in_category"][feature.category] = feature
+        show_panel(feature)
+
+    def select_category(cat_id):
+        last = state["last_in_category"].get(cat_id)
+        cat_features = None
+        for cid, _label, feats in grouped:
+            if cid == cat_id:
+                cat_features = feats
+                break
+        if not cat_features:
+            return
+        if last is None or last not in cat_features:
+            last = cat_features[0]
+        select_feature(last)
+
+    def on_nav_tree(ev):
+        tree = ctx.items.get(NAV_TREE_ID)
+        item = ui_kit.get_event_item(ev)
+        if item is None and tree is not None:
+            item = ui_kit.get_tree_current_item(tree)
+        key = ui_kit.nav_tree_key(item, ctx.nav_tree_key_by_label)
+        if not key:
+            return
+        if key.startswith(ui_kit.NAV_CATEGORY_PREFIX):
+            select_category(key[len(ui_kit.NAV_CATEGORY_PREFIX) :])
+            return
+        feature = features_by_id.get(key)
+        if feature is not None:
+            select_feature(feature)
+
+    return select_feature, on_nav_tree
+
+
 def main(injected_globals=None):
     conn = resolve_conn.connect(injected_globals=injected_globals)
     api = ResolveAPI(conn)
     features = build_features()
+    grouped = features_by_category(features)
+    features_by_id = {f.id: f for f in features}
 
     ctx = AppContext(conn, api)
 
     win = _build_window(conn.ui, conn.dispatcher, features)
     ctx.win = win
     ctx.items = win.GetItems()
+
+    nav_tree = ctx.items[NAV_TREE_ID]
+    ui_kit.setup_nav_tree(nav_tree, SIDEBAR_WIDTH)
+    ui_kit.populate_nav_tree(
+        nav_tree, grouped, SIDEBAR_WIDTH, ctx.nav_tree_key_by_label
+    )
 
     for feature in features:
         try:
@@ -160,14 +205,12 @@ def main(injected_globals=None):
             print(f"Conform Sidekick: bind failed for {feature.id}: {exc}")
 
     show_panel = _make_show_panel(ctx, features)
+    select_feature, on_nav_tree = _make_nav_controller(
+        ctx, grouped, features_by_id, show_panel
+    )
 
-    def make_nav_handler(feature):
-        def handler(ev):
-            show_panel(feature)
-        return handler
-
-    for feature in features:
-        win.On[f"nav.{feature.id}"].Clicked = make_nav_handler(feature)
+    win.On[NAV_TREE_ID].ItemClicked = on_nav_tree
+    win.On[NAV_TREE_ID].CurrentItemChanged = on_nav_tree
 
     def on_close(ev):
         conn.dispatcher.ExitLoop()
@@ -176,13 +219,8 @@ def main(injected_globals=None):
 
     win.Show()
 
-    # Reveal the initial tab AFTER Show(). We force a clean hidden->visible
-    # transition on the active panel because that transition is what triggers
-    # the layout pass; without it the default panel renders blank. A single
-    # pump flushes the layout. We deliberately do NOT run heavy work (e.g. a
-    # scan) before RunLoop() - that's what previously wedged the dispatcher.
     if features:
-        first = features[0]
+        first = grouped[0][2][0] if grouped else features[0]
         for feature in features:
             panel = ctx.items.get(feature.panel_id)
             if panel is None:
@@ -198,12 +236,10 @@ def main(injected_globals=None):
                 active_panel.Hidden = False
             except Exception:
                 pass
+        select_feature(first)
+        ui_kit.set_nav_tree_column_width(nav_tree, SIDEBAR_WIDTH)
         ui_kit.recalc_layout(win)
         ui_kit.pump(conn.dispatcher)
-        try:
-            first.on_show(ctx)
-        except Exception as exc:
-            print(f"Conform Sidekick: on_show failed for {first.id}: {exc}")
 
     conn.dispatcher.RunLoop()
     win.Hide()

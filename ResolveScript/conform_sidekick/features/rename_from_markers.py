@@ -22,6 +22,7 @@ DEFAULTS = {
 class RenameFromMarkersFeature(LogFeature):
     id = "rename"
     title = "Rename Clips From Markers"
+    category = "edit"
     run_label = "Rename Clips"
 
     def state_store(self):

@@ -2,7 +2,13 @@
 
 ## Download
 
-Find the latest version to download on the [releases page](https://github.com/beauwright/Conform-Sidekick/releases/latest)
+- **Resolve-native edition (in-Resolve Scripts menu):** see the
+  [`resolve-native`](https://github.com/beauwright/Conform-Sidekick/tree/resolve-native)
+  branch and its [releases](https://github.com/beauwright/Conform-Sidekick/releases)
+  (`ConformSidekick-Windows.zip` / `ConformSidekick-macOS.zip`). Extract and run
+  the installer inside the ZIP.
+- **Legacy desktop app (Tauri):** [releases page](https://github.com/beauwright/Conform-Sidekick/releases/latest)
+  on `main` — being superseded by resolve-native.
 
 ## Key Features
 
@@ -15,8 +21,9 @@ Find the latest version to download on the [releases page](https://github.com/be
 ## Compatibility and Use
 
 ### Compatibility
-- **DaVinci Resolve Studio**: Conform Sidekick uses scripting features only found in DaVinci Resolve Studio, and is not compatible with the free version of DaVinci Resolve.
-    - Ensure external scripting is set to either local or network in Preferences/General or Conform Sidekick will fail to connect to Resolve.
+- **DaVinci Resolve Studio**: Conform Sidekick requires Resolve Studio (scripting API and UIManager script windows). It does not run on the free edition.
+- **Resolve-native edition**: launch from **Workspace → Scripts → Utility → Conform Sidekick** after installing with the ZIP installer (no separate app, no external scripting preference).
+- **Legacy desktop app**: ensure external scripting is set to local or network in **Preferences → System → General**, or the sidecar cannot connect.
 
 ### Limitations
 - **Media Conversion**: Currently, Conform Sidekick can identify odd resolutions in image sequences and video files but can only automatically adjust and replace image files.

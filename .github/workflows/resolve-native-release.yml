@@ -1,0 +1,118 @@
+# Build resolve-native Conform Sidekick packages (script + image helper per OS).
+# Publishes ZIP artifacts; attaches them to GitHub Releases when a v* tag is pushed.
+
+name: Resolve Native Release
+
+on:
+  push:
+    branches:
+      - resolve-native
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Package (${{ matrix.label }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            label: windows
+            helper_name: convert_photos_helper-x86_64-pc-windows-msvc.exe
+            archive: ConformSidekick-Windows
+            install_ps1: true
+          - os: macos-14
+            label: macos
+            helper_name: convert_photos_helper-x86_64-apple-darwin
+            archive: ConformSidekick-macOS
+            install_ps1: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build dependencies
+        run: pip install pillow "pillow_heif==0.15.0" pyinstaller
+
+      - name: Build image helper (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Set-Location PythonInterface
+          ./build_convert_photos_helper.ps1
+
+      - name: Build image helper (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          cd PythonInterface
+          chmod +x build_convert_photos_helper.sh
+          ./build_convert_photos_helper.sh
+
+      - name: Assemble install package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          ARCHIVE: ${{ matrix.archive }}
+          HELPER: ${{ matrix.helper_name }}
+        run: |
+          $pkg = $env:ARCHIVE
+          New-Item -ItemType Directory -Force -Path $pkg/helpers | Out-Null
+          Copy-Item "ResolveScript/Conform Sidekick.py" $pkg/
+          Copy-Item "ResolveScript/conform_sidekick" $pkg/ -Recurse
+          Get-ChildItem $pkg/conform_sidekick -Recurse -Directory -Filter __pycache__ | Remove-Item -Recurse -Force
+          Copy-Item "PythonInterface/dist/$env:HELPER" $pkg/helpers/
+          Copy-Item "installer/Install-ConformSidekick.ps1" $pkg/
+          Copy-Item "installer/Install-ConformSidekick.bat" $pkg/
+          Copy-Item "installer/README.md" $pkg/INSTALL.txt
+          Compress-Archive -Path $pkg -DestinationPath "$pkg.zip" -Force
+
+      - name: Assemble install package (macOS)
+        if: runner.os == 'macOS'
+        env:
+          ARCHIVE: ${{ matrix.archive }}
+          HELPER: ${{ matrix.helper_name }}
+        run: |
+          pkg="$ARCHIVE"
+          mkdir -p "$pkg/helpers"
+          cp "ResolveScript/Conform Sidekick.py" "$pkg/"
+          cp -R "ResolveScript/conform_sidekick" "$pkg/"
+          find "$pkg/conform_sidekick" -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+          cp "PythonInterface/dist/$HELPER" "$pkg/helpers/"
+          cp installer/install_conform_sidekick.sh "$pkg/"
+          chmod +x "$pkg/install_conform_sidekick.sh"
+          cp installer/README.md "$pkg/INSTALL.txt"
+          zip -r "$pkg.zip" "$pkg"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.archive }}
+          path: ${{ matrix.archive }}.zip
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}

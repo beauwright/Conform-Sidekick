@@ -34,6 +34,7 @@ DEFAULTS = {
 class LayMatchingClipsFeature(LogFeature):
     id = "layclips"
     title = "Lay Matching Bin Clips"
+    category = "edit"
     run_label = "Lay Clips"
 
     def state_store(self):

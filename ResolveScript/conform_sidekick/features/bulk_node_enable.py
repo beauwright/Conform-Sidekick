@@ -38,6 +38,7 @@ def _row(ui, label, widget):
 class BulkNodeEnableFeature(LogFeature):
     id = "bulknodes"
     title = "Bulk Enable/Disable Nodes"
+    category = "color"
     run_label = "Apply"
 
     def state_store(self):
