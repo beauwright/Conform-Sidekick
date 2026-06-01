@@ -12,6 +12,7 @@ optional PyInstaller helper in ``ResolveScript/helpers/``).
 
 from .base import Feature
 from .. import ui_kit
+from .. import ui_strings as us
 from ..resolve_api import ScanCancelled
 from ..ops.odd_res import convert_single_photo
 
@@ -25,7 +26,7 @@ KEY_COL = 4
 
 class OddResPhotosFeature(Feature):
     id = "oddres"
-    title = "Fix Odd Resolution Photos"
+    title = "Fix Odd-Resolution Photos"
     category = "conform"
 
     def __init__(self):
@@ -39,13 +40,14 @@ class OddResPhotosFeature(Feature):
             {"Spacing": 8, "Weight": 1},
             [
                 ui.Label(
-                    {"Text": "Find images with an odd pixel width or height and "
-                             "fix them by stretching 1px.", "Weight": 0}
+                    {"Text": "Find still images whose width or height is an odd number "
+                             "of pixels, then stretch them by 1px so renders behave.",
+                     "Weight": 0}
                 ),
                 ui.HGroup(
                     ui_kit.button_row_props(),
                     [
-                        ui.Label({"Text": "Scope:", "Weight": 0, "MinimumSize": [60, 0]}),
+                        ui.Label({"Text": us.LABEL_SEARCH_IN, "Weight": 0, "MinimumSize": [60, 0]}),
                         ui.ComboBox(
                             {"ID": self.wid("Scope"), "Weight": 0,
                              "MinimumSize": [220, 26], "MaximumSize": [320, 26]}
@@ -65,7 +67,7 @@ class OddResPhotosFeature(Feature):
                     ],
                 ),
                 ui.Label(
-                    {"ID": self.wid("Status"), "Text": "Choose a scope and click Scan.",
+                    {"ID": self.wid("Status"), "Text": us.STATUS_CHOOSE_SCOPE,
                      "Weight": 0, "StyleSheet": "font-weight: bold;"}
                 ),
                 ui.Tree(
@@ -76,18 +78,18 @@ class OddResPhotosFeature(Feature):
                     [
                         ui_kit.action_button(
                             ui,
-                            {"ID": self.wid("ConvertAll"), "Text": "Convert All Listed",
+                            {"ID": self.wid("ConvertAll"), "Text": "Fix All Listed",
                              "Enabled": False, "MinimumSize": [145, 0]},
                         ),
                         ui_kit.action_button(
                             ui,
-                            {"ID": self.wid("ConvertSel"), "Text": "Convert Selected",
+                            {"ID": self.wid("ConvertSel"), "Text": "Fix Selected",
                              "Enabled": False, "MinimumSize": [135, 0]},
                         ),
                         ui.HGap(0, 1.0),
                     ],
                 ),
-                ui.Label({"Text": "Output:", "Weight": 0}),
+                ui.Label({"Text": us.OUTPUT_HEADER, "Weight": 0}),
                 # Share the flexible height with the Tree via weights (rather
                 # than a fixed MinimumSize): a fixed-height log here lets the
                 # Tree hog the stretch space and pushes this box off the bottom
@@ -95,7 +97,7 @@ class OddResPhotosFeature(Feature):
                 # through as an orange sliver).
                 ui.TextEdit(
                     {"ID": self.wid("Log"), "ReadOnly": True,
-                     "PlaceholderText": "Conversion results will appear here.",
+                     "PlaceholderText": "Fix results will appear here.",
                      "Weight": 1}
                 ),
             ],
@@ -107,8 +109,8 @@ class OddResPhotosFeature(Feature):
         api = ctx.api
 
         scope_combo = items[self.wid("Scope")]
-        scope_combo.AddItem("Project-wide")
-        scope_combo.AddItem("Current Timeline")
+        scope_combo.AddItem(us.SCOPE_ENTIRE_PROJECT)
+        scope_combo.AddItem(us.SCOPE_CURRENT_TIMELINE)
 
         tree = items[self.wid("Tree")]
         ui_kit.setup_tree(tree, COLUMNS, COLUMN_WIDTHS)
@@ -143,7 +145,7 @@ class OddResPhotosFeature(Feature):
             try:
                 convert_all_btn.Enabled = not running and bool(self._order)
                 convert_sel_btn.Enabled = not running and bool(self._selected_key)
-                convert_all_btn.Text = "Converting..." if running else "Convert All Listed"
+                convert_all_btn.Text = "Fixing…" if running else "Fix All Listed"
                 cancel_btn.Enabled = running
                 scan_btn.Enabled = not running
             except Exception:
@@ -159,16 +161,16 @@ class OddResPhotosFeature(Feature):
             self._selected_key = ""
 
             if ctx.conn.get_project() is None:
-                set_status("No project is open in Resolve.")
+                set_status(us.STATUS_NO_PROJECT)
                 return
 
             self._run.begin()
             set_scan_running(True)
-            set_status("Scanning... (this can take a while on large projects)")
+            set_status("Scanning… this may take a while on large projects.")
 
             def on_progress(count):
                 try:
-                    status.Text = f"Scanning... {count} clips checked (Cancel to stop)"
+                    status.Text = f"Scanning… {count} clips checked (click Cancel to stop)"
                 except Exception:
                     pass
                 ui_kit.pump(ctx.dispatcher)
@@ -201,16 +203,16 @@ class OddResPhotosFeature(Feature):
             self._run.end()
             set_scan_running(False)
 
-            scope_label = "the current timeline" if scope == "timeline" else "this project"
+            scope_label = us.scope_area_label(scope)
             count = len(self._order)
             if cancelled:
-                set_status(f"Scan cancelled. Showing {count} partial result(s).")
+                set_status(f"Scan stopped early. Showing {count} result(s) so far.")
             elif count == 0:
                 set_status(f"No odd-resolution images found in {scope_label}.")
             else:
                 set_status(
                     f"Found {count} odd-resolution image(s) in {scope_label}. "
-                    "Use Convert All Listed, or select a row and Convert Selected."
+                    "Click Fix All Listed, or select a row and Fix Selected."
                 )
 
         def on_cancel():
@@ -241,7 +243,7 @@ class OddResPhotosFeature(Feature):
             self._run.begin()
             set_convert_running(True)
             log_ctl.reset()
-            log_ctl.log(f"Converting {len(records)} odd-resolution image(s)...")
+            log_ctl.log(f"Fixing {len(records)} odd-resolution image(s)…")
 
             converted = 0
             failed = 0
@@ -293,8 +295,8 @@ class OddResPhotosFeature(Feature):
             set_convert_running(False)
             log_ctl.log("")
             log_ctl.log(f"  Converted: {converted}    Failed/skipped: {failed}")
-            log_ctl.log("  Re-scan to refresh the list.")
-            set_status(f"Conversion finished: {converted} converted, {failed} failed/skipped.")
+            log_ctl.log("Run Scan again to refresh the list.")
+            set_status(f"Finished: {converted} fixed, {failed} failed or skipped.")
 
         def on_convert_all():
             convert_records([self._by_key[k] for k in self._order if k in self._by_key])
@@ -302,7 +304,7 @@ class OddResPhotosFeature(Feature):
         def on_convert_sel():
             media = self._by_key.get(self._selected_key)
             if media is None:
-                set_status("Select a row first, then Convert Selected.")
+                set_status("Select a row first, then click Fix Selected.")
                 return
             convert_records([media])
 

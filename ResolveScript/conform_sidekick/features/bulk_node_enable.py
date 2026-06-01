@@ -6,9 +6,11 @@ version handling, and a dry-run preview. Port of
 davinci-resolve-scripts/Color/BulkEnableDisableNodes.py.
 """
 
-from .log_feature import LogFeature
+from .log_feature import TrackFilterLogFeature
 from ..state import StateStore
 from .. import timeline_filters as tf
+from .. import track_filter_ui
+from .. import ui_strings as us
 from ..ops.bulk_nodes import bulk_set_node_enabled
 
 CLIP_COLORS = tf.CLIP_COLORS + [tf.UNCOLORED_SENTINEL]
@@ -20,6 +22,7 @@ DEFAULTS = {
     "name_filter": "",
     "layer_spec": "",
     "all_versions": False,
+    "use_track_filter": False,
     "track_filter": "",
     "use_inout": False,
     "use_clip_color": False,
@@ -35,9 +38,9 @@ def _row(ui, label, widget):
     )
 
 
-class BulkNodeEnableFeature(LogFeature):
+class BulkNodeEnableFeature(TrackFilterLogFeature):
     id = "bulknodes"
-    title = "Bulk Enable/Disable Nodes"
+    title = "Enable/Disable Nodes (Bulk)"
     category = "color"
     run_label = "Apply"
 
@@ -46,26 +49,26 @@ class BulkNodeEnableFeature(LogFeature):
 
     def form_rows(self, ui):
         return [
-            _row(ui, "Operation:", ui.ComboBox({"ID": self.wid("Operation"), "Weight": 1})),
-            _row(ui, "Node index spec:", ui.LineEdit(
+            _row(ui, "Action:", ui.ComboBox({"ID": self.wid("Operation"), "Weight": 1})),
+            _row(ui, "Node number(s):", ui.LineEdit(
                 {"ID": self.wid("IndexSpec"),
-                 "PlaceholderText": "e.g. 2  or  2,5  or  1,3-5", "Weight": 1})),
-            _row(ui, "Node label regex:", ui.LineEdit(
+                 "PlaceholderText": "e.g. 2  or  2, 5  or  1-3", "Weight": 1})),
+            _row(ui, us.LABEL_NODE_LABEL_PATTERN, ui.LineEdit(
                 {"ID": self.wid("LabelRegex"),
-                 "PlaceholderText": "(optional) overrides index when set, e.g. (?i)denoise",
+                 "PlaceholderText": us.PLACEHOLDER_NODE_LABEL_PATTERN,
                  "Weight": 1})),
-            _row(ui, "Layer:", ui.LineEdit(
+            _row(ui, "Node layer:", ui.LineEdit(
                 {"ID": self.wid("LayerSpec"),
-                 "PlaceholderText": "blank = layer 1; 'all'; or 1,3-5", "Weight": 1})),
-            _row(ui, "Clip name regex:", ui.LineEdit(
+                 "PlaceholderText": "Blank = layer 1; all = every layer; or 1, 3-5",
+                 "Weight": 1})),
+            _row(ui, us.LABEL_CLIP_NAME_FILTER, ui.LineEdit(
                 {"ID": self.wid("NameFilter"),
-                 "PlaceholderText": "(optional) only TLIs whose name matches", "Weight": 1})),
-            _row(ui, "Tracks:", ui.LineEdit(
-                {"ID": self.wid("TrackFilter"),
-                 "PlaceholderText": "blank = all video tracks; e.g. 1,3-5", "Weight": 1})),
+                 "PlaceholderText": us.PLACEHOLDER_CLIP_NAME_FILTER,
+                 "Weight": 1})),
+        ] + self.track_filter_rows(ui) + [
             ui.CheckBox(
                 {"ID": self.wid("UseInOut"),
-                 "Text": "Only clips overlapping timeline In/Out range",
+                 "Text": us.CHECK_TIMELINE_INOUT,
                  "Checked": False, "Weight": 0}
             ),
             ui.HGroup(
@@ -73,7 +76,7 @@ class BulkNodeEnableFeature(LogFeature):
                 [
                     ui.CheckBox(
                         {"ID": self.wid("UseClipColor"),
-                         "Text": "Only clips with clip color:",
+                         "Text": "Only clips with this clip color:",
                          "Checked": False, "Weight": 0, "MinimumSize": [220, 0]}
                     ),
                     ui.ComboBox({"ID": self.wid("ClipColor"), "Weight": 1}),
@@ -81,11 +84,11 @@ class BulkNodeEnableFeature(LogFeature):
             ),
             ui.CheckBox(
                 {"ID": self.wid("AllVersions"),
-                 "Text": "Apply to all local versions (restores active version after run)",
+                 "Text": "Apply to every local version (restores your active version after)",
                  "Checked": False, "Weight": 0}
             ),
             ui.CheckBox(
-                {"ID": self.wid("DryRun"), "Text": "Dry run (preview only)",
+                {"ID": self.wid("DryRun"), "Text": us.CHECK_PREVIEW_ONLY,
                  "Checked": False, "Weight": 0}
             ),
         ]
@@ -104,7 +107,7 @@ class BulkNodeEnableFeature(LogFeature):
         items[self.wid("LabelRegex")].Text = state["label_regex"]
         items[self.wid("NameFilter")].Text = state["name_filter"]
         items[self.wid("LayerSpec")].Text = state["layer_spec"]
-        items[self.wid("TrackFilter")].Text = state.get("track_filter", "")
+        track_filter_ui.apply_track_filter_state(items, self, state)
         items[self.wid("UseInOut")].Checked = bool(state.get("use_inout", False))
         items[self.wid("UseClipColor")].Checked = bool(state.get("use_clip_color", False))
         color_idx = state.get("clip_color_index", 6)
@@ -122,6 +125,9 @@ class BulkNodeEnableFeature(LogFeature):
             clip_color_value = CLIP_COLORS[clip_color_idx]
         else:
             clip_color_value = ""
+        track_spec, _use_tracks, track_state = track_filter_ui.gather_track_filter(
+            items, self
+        )
         params = {
             "enabled": operation_index == 1,
             "index_spec": items[self.wid("IndexSpec")].Text,
@@ -130,7 +136,7 @@ class BulkNodeEnableFeature(LogFeature):
             "layer_spec": items[self.wid("LayerSpec")].Text,
             "all_versions": bool(items[self.wid("AllVersions")].Checked),
             "use_inout": bool(items[self.wid("UseInOut")].Checked),
-            "track_filter_spec": items[self.wid("TrackFilter")].Text,
+            "track_filter_spec": track_spec,
             "clip_color_filter": clip_color_value if use_clip_color else "",
             "dry_run": bool(items[self.wid("DryRun")].Checked),
         }
@@ -141,11 +147,11 @@ class BulkNodeEnableFeature(LogFeature):
             "name_filter": params["name_filter"],
             "layer_spec": params["layer_spec"],
             "all_versions": params["all_versions"],
-            "track_filter": params["track_filter_spec"],
             "use_inout": params["use_inout"],
             "use_clip_color": use_clip_color,
             "clip_color_index": clip_color_idx,
             "dry_run": params["dry_run"],
+            **track_state,
         }
         return params, state
 

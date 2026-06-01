@@ -50,6 +50,25 @@ class ResolveAPI:
             "timelineName": timeline.GetName() if (project and timeline) else "",
         }
 
+    def video_tracks(self) -> list:
+        """Return ``[{index, name}, ...]`` for each video track on the current timeline."""
+        timeline = self.conn.get_timeline()
+        if timeline is None:
+            return []
+        try:
+            count = int(timeline.GetTrackCount("video") or 0)
+        except (TypeError, ValueError):
+            count = 0
+        tracks = []
+        for index in range(1, count + 1):
+            name = ""
+            try:
+                name = timeline.GetTrackName("video", index) or ""
+            except Exception:
+                pass
+            tracks.append({"index": index, "name": name})
+        return tracks
+
     # -- media pool traversal ---------------------------------------------
 
     def get_all_folders(self, project):

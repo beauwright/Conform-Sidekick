@@ -9,9 +9,12 @@ from .table_scan import TableScanFeature
 
 class CompoundClipsFeature(TableScanFeature):
     id = "compound"
-    title = "Identify Compound Clips"
+    title = "Find Compound Clips"
     category = "conform"
-    intro = "List compound clips in the project (or current timeline) and jump to them."
+    intro = (
+        "Find compound clips in the project or on the timeline. "
+        "Select a row to jump to that spot on the timeline."
+    )
     noun_plural = "compound clip(s)"
     columns = ["Name", "Bin Location", "Resolution", "Track", "Timecode"]
     column_widths = [240, 320, 120, 80, 150]

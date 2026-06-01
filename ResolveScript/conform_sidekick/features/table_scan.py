@@ -15,6 +15,7 @@ pumping is safe.
 
 from .base import Feature
 from .. import ui_kit
+from .. import ui_strings as us
 from ..resolve_api import ScanCancelled
 
 
@@ -51,7 +52,7 @@ class TableScanFeature(Feature):
                     ui_kit.button_row_props(),
                     [
                         ui.Label(
-                            {"Text": "Scope:", "Weight": 0, "MinimumSize": [60, 0]}
+                            {"Text": us.LABEL_SEARCH_IN, "Weight": 0, "MinimumSize": [60, 0]}
                         ),
                         ui.ComboBox(
                             {"ID": self.wid("Scope"), "Weight": 0,
@@ -72,7 +73,7 @@ class TableScanFeature(Feature):
                     ],
                 ),
                 ui.Label(
-                    {"ID": self.wid("Status"), "Text": "Choose a scope and click Scan.",
+                    {"ID": self.wid("Status"), "Text": us.STATUS_CHOOSE_SCOPE,
                      "Weight": 0, "StyleSheet": "font-weight: bold;"}
                 ),
                 ui.Tree(
@@ -89,7 +90,7 @@ class TableScanFeature(Feature):
                         ),
                         ui_kit.action_button(
                             ui,
-                            {"ID": self.wid("GoTC"), "Text": "Go to Timecode",
+                            {"ID": self.wid("GoTC"), "Text": "Jump to Clip",
                              "Enabled": False, "MinimumSize": [120, 0]},
                         ),
                         ui_kit.action_button(
@@ -111,8 +112,8 @@ class TableScanFeature(Feature):
         api = ctx.api
 
         scope_combo = items[self.wid("Scope")]
-        scope_combo.AddItem("Project-wide")
-        scope_combo.AddItem("Current Timeline")
+        scope_combo.AddItem(us.SCOPE_ENTIRE_PROJECT)
+        scope_combo.AddItem(us.SCOPE_CURRENT_TIMELINE)
 
         tree = items[self.wid("Tree")]
         ui_kit.setup_tree(tree, self.columns, self.column_widths)
@@ -158,16 +159,16 @@ class TableScanFeature(Feature):
             set_selected_tc("")
 
             if ctx.conn.get_project() is None:
-                set_status("No project is open in Resolve.")
+                set_status(us.STATUS_NO_PROJECT)
                 return
 
             self._run.begin()
             set_running(True)
-            set_status("Scanning... (this can take a while on large projects)")
+            set_status("Scanning… this may take a while on large projects.")
 
             def on_progress(count):
                 try:
-                    status.Text = f"Scanning... {count} clips checked (Cancel to stop)"
+                    status.Text = f"Scanning… {count} clips checked (click Cancel to stop)"
                 except Exception:
                     pass
                 ui_kit.pump(ctx.dispatcher)
@@ -197,16 +198,16 @@ class TableScanFeature(Feature):
             self._run.end()
             set_running(False)
 
-            scope_label = "the current timeline" if scope == "timeline" else "this project"
+            scope_label = us.scope_area_label(scope)
             if cancelled:
-                set_status(f"Scan cancelled. Showing {row_count} partial result(s).")
+                set_status(f"Scan stopped early. Showing {row_count} result(s) so far.")
             elif row_count == 0:
                 set_status(f"No {self.noun_plural} found in {scope_label}.")
             else:
                 set_status(
                     f"Found {row_count} {self.noun_plural} in {scope_label}. "
-                    "Select a row, then Go to / Copy Timecode "
-                    "(or double-click a row to jump)."
+                    "Select a row, then Jump to Clip or Copy Timecode "
+                    "(double-click a row to jump)."
                 )
 
         def on_cancel():
@@ -230,9 +231,9 @@ class TableScanFeature(Feature):
             if not tc:
                 return
             if api.go_to_timecode(tc):
-                set_status(f"Jumped to {tc}.")
+                set_status(f"Playhead moved to {tc}.")
             else:
-                set_status(f"Could not jump to {tc} (open the timeline first).")
+                set_status(f"Could not jump to {tc} — open the timeline first.")
 
         def on_select(ev):
             set_selected_tc(tc_of(ui_kit.get_event_item(ev)))

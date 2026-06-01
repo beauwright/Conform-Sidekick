@@ -8,9 +8,11 @@ davinci-resolve-scripts/Edit/LayMatchingBinClipsOnNewTrack.py, with the
 timecode math moved onto the vendored ``timecode`` library.
 """
 
-from .log_feature import LogFeature
+from .log_feature import TrackFilterLogFeature
 from ..state import StateStore
 from .. import timeline_filters as tf
+from .. import track_filter_ui
+from .. import ui_strings as us
 from ..ops.lay_clips import lay_matching_bin_clips
 
 CLIP_COLORS = tf.CLIP_COLORS
@@ -24,6 +26,7 @@ DEFAULTS = {
     "disable_originals": False,
     "skip_disabled_tlis": True,
     "use_inout": False,
+    "use_track_filter": False,
     "track_filter": "",
     "dry_run": False,
     "add_offset_track": False,
@@ -31,7 +34,7 @@ DEFAULTS = {
 }
 
 
-class LayMatchingClipsFeature(LogFeature):
+class LayMatchingClipsFeature(TrackFilterLogFeature):
     id = "layclips"
     title = "Lay Matching Bin Clips"
     category = "edit"
@@ -43,12 +46,12 @@ class LayMatchingClipsFeature(LogFeature):
     def form_rows(self, ui):
         return [
             ui.Label(
-                {"Text": "Regex (matched against TimelineItem AND MediaPoolItem names):",
+                {"Text": us.LABEL_CLIP_NAME_PATTERN,
                  "Weight": 0}
             ),
             ui.LineEdit(
                 {"ID": self.wid("Pattern"),
-                 "PlaceholderText": r"e.g. ^(SHOT_\d+)  (group 1 is the pairing key)",
+                 "PlaceholderText": us.PLACEHOLDER_CLIP_NAME_PATTERN,
                  "Text": "", "Weight": 0}
             ),
             ui.HGroup(
@@ -58,14 +61,14 @@ class LayMatchingClipsFeature(LogFeature):
                               "MinimumSize": [130, 0]}),
                     ui.LineEdit(
                         {"ID": self.wid("TrackName"),
-                         "PlaceholderText": "(optional) name for the new video track"}
+                         "PlaceholderText": "Optional — name for the new video track"}
                     ),
                 ],
             ),
             ui.HGroup(
                 {"Spacing": 8, "Weight": 0, "MinimumSize": [0, 30]},
                 [
-                    ui.Label({"Text": "Clip color:", "Weight": 0,
+                    ui.Label({"Text": "Tag new clips:", "Weight": 0,
                               "MinimumSize": [130, 0]}),
                     ui.ComboBox({"ID": self.wid("ClipColor"), "Weight": 1}),
                 ],
@@ -74,11 +77,11 @@ class LayMatchingClipsFeature(LogFeature):
                 {"Spacing": 8, "Weight": 0, "MinimumSize": [0, 30]},
                 [
                     ui.CheckBox(
-                        {"ID": self.wid("CopyGrade"), "Text": "Copy grade from original",
+                        {"ID": self.wid("CopyGrade"), "Text": "Copy grade from original clip",
                          "Checked": True, "Weight": 1}
                     ),
                     ui.CheckBox(
-                        {"ID": self.wid("CopyAttrs"), "Text": "Copy video attributes",
+                        {"ID": self.wid("CopyAttrs"), "Text": "Copy transform & sizing",
                          "Checked": True, "Weight": 1}
                     ),
                 ],
@@ -88,30 +91,20 @@ class LayMatchingClipsFeature(LogFeature):
                 [
                     ui.CheckBox(
                         {"ID": self.wid("DisableOriginals"),
-                         "Text": "Disable original TimelineItems",
+                         "Text": "Disable original clips after laying new ones",
                          "Checked": False, "Weight": 1}
                     ),
                     ui.CheckBox(
                         {"ID": self.wid("SkipDisabledTLIs"),
-                         "Text": "Skip disabled TimelineItems",
+                         "Text": "Skip clips that are already disabled",
                          "Checked": True, "Weight": 1}
                     ),
                 ],
             ),
-            ui.HGroup(
-                {"Spacing": 8, "Weight": 0, "MinimumSize": [0, 30]},
-                [
-                    ui.Label({"Text": "Tracks:", "Weight": 0, "MinimumSize": [130, 0]}),
-                    ui.LineEdit(
-                        {"ID": self.wid("TrackFilter"),
-                         "PlaceholderText": "blank = all video tracks; e.g. 1,3-5",
-                         "Weight": 1}
-                    ),
-                ],
-            ),
+        ] + self.track_filter_rows(ui) + [
             ui.CheckBox(
                 {"ID": self.wid("UseInOut"),
-                 "Text": "Only clips overlapping timeline In/Out range",
+                 "Text": us.CHECK_TIMELINE_INOUT,
                  "Checked": False, "Weight": 0}
             ),
             ui.HGroup(
@@ -119,7 +112,7 @@ class LayMatchingClipsFeature(LogFeature):
                 [
                     ui.CheckBox(
                         {"ID": self.wid("AddOffsetTrack"),
-                         "Text": "Also lay a comparison track with source-frame offset:",
+                         "Text": "Add a comparison track (offset source by:",
                          "Checked": False, "Weight": 1}
                     ),
                     ui.SpinBox(
@@ -127,11 +120,11 @@ class LayMatchingClipsFeature(LogFeature):
                          "Maximum": 240, "Value": -1, "MinimumSize": [80, 0],
                          "MaximumSize": [80, 16777215], "Weight": 0}
                     ),
-                    ui.Label({"Text": "frames", "Weight": 0, "MinimumSize": [50, 0]}),
+                    ui.Label({"Text": "frames)", "Weight": 0, "MinimumSize": [50, 0]}),
                 ],
             ),
             ui.CheckBox(
-                {"ID": self.wid("DryRun"), "Text": "Dry run (preview only)",
+                {"ID": self.wid("DryRun"), "Text": us.CHECK_PREVIEW_ONLY,
                  "Checked": False, "Weight": 0}
             ),
         ]
@@ -149,7 +142,7 @@ class LayMatchingClipsFeature(LogFeature):
         items[self.wid("CopyAttrs")].Checked = bool(state["copy_attrs"])
         items[self.wid("DisableOriginals")].Checked = bool(state["disable_originals"])
         items[self.wid("SkipDisabledTLIs")].Checked = bool(state["skip_disabled_tlis"])
-        items[self.wid("TrackFilter")].Text = state.get("track_filter", "")
+        track_filter_ui.apply_track_filter_state(items, self, state)
         items[self.wid("UseInOut")].Checked = bool(state.get("use_inout", False))
         items[self.wid("DryRun")].Checked = bool(state["dry_run"])
         items[self.wid("AddOffsetTrack")].Checked = bool(state.get("add_offset_track", False))
@@ -165,6 +158,9 @@ class LayMatchingClipsFeature(LogFeature):
             offset_track_frames = int(items[self.wid("OffsetTrackFrames")].Value)
         except (TypeError, ValueError):
             offset_track_frames = -1
+        track_spec, _use_tracks, track_state = track_filter_ui.gather_track_filter(
+            items, self
+        )
         params = {
             "pattern_str": items[self.wid("Pattern")].Text,
             "new_track_name": items[self.wid("TrackName")].Text,
@@ -174,7 +170,7 @@ class LayMatchingClipsFeature(LogFeature):
             "disable_originals": bool(items[self.wid("DisableOriginals")].Checked),
             "skip_disabled_tlis": bool(items[self.wid("SkipDisabledTLIs")].Checked),
             "use_inout": bool(items[self.wid("UseInOut")].Checked),
-            "track_filter_spec": items[self.wid("TrackFilter")].Text,
+            "track_filter_spec": track_spec,
             "dry_run": bool(items[self.wid("DryRun")].Checked),
             "add_offset_track": bool(items[self.wid("AddOffsetTrack")].Checked),
             "offset_track_frames": offset_track_frames,
@@ -187,11 +183,11 @@ class LayMatchingClipsFeature(LogFeature):
             "copy_attrs": params["copy_attrs"],
             "disable_originals": params["disable_originals"],
             "skip_disabled_tlis": params["skip_disabled_tlis"],
-            "track_filter": params["track_filter_spec"],
             "use_inout": params["use_inout"],
             "dry_run": params["dry_run"],
             "add_offset_track": params["add_offset_track"],
             "offset_track_frames": offset_track_frames,
+            **track_state,
         }
         return params, state
 

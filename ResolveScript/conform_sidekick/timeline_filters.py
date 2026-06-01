@@ -17,7 +17,7 @@ CLIP_COLORS = [
     "Blue", "Purple", "Violet", "Pink",
     "Tan", "Beige", "Brown", "Chocolate",
 ]
-UNCOLORED_SENTINEL = "(Uncolored)"
+UNCOLORED_SENTINEL = "No clip color"
 
 # Video attribute keys copied from an original TimelineItem to a newly-laid one
 # (Lay Matching Bin Clips). Read-only / context-disabled keys are tolerated via

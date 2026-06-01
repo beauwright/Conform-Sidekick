@@ -10,11 +10,14 @@ from .table_scan import TableScanFeature
 
 class InterlacedFeature(TableScanFeature):
     id = "interlaced"
-    title = "Identify Interlaced"
+    title = "Find Interlaced Footage"
     category = "conform"
-    intro = "Find interlaced (Upper/Lower field) media."
-    noun_plural = "interlaced instance(s)"
-    columns = ["Name", "Bin Location", "Resolution", "Field", "Track", "Timecode"]
+    intro = (
+        "Find clips that are interlaced (upper or lower field). "
+        "Select a row to jump to that spot on the timeline."
+    )
+    noun_plural = "interlaced clip(s)"
+    columns = ["Name", "Bin Location", "Resolution", "Field Order", "Track", "Timecode"]
     column_widths = [200, 260, 100, 100, 70, 140]
     tc_column = 5
 

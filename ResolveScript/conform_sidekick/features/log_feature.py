@@ -17,6 +17,7 @@ import traceback
 
 from .base import Feature
 from .. import ui_kit
+from .. import ui_strings as us
 
 
 class LogFeature(Feature):
@@ -54,13 +55,13 @@ class LogFeature(Feature):
 
     def build_layout(self, ui):
         rows = list(self.form_rows(ui))
-        rows.append(ui.Label({"Text": "Output:", "Weight": 0}))
+        rows.append(ui.Label({"Text": us.OUTPUT_HEADER, "Weight": 0}))
         rows.append(
             ui.TextEdit(
                 {
                     "ID": self.wid("Log"),
                     "ReadOnly": True,
-                    "PlaceholderText": "Run results will appear here.",
+                    "PlaceholderText": us.OUTPUT_PLACEHOLDER,
                     "Weight": 1,
                 }
             )
@@ -124,7 +125,7 @@ class LogFeature(Feature):
                 params, state = self.gather(items)
             except Exception as exc:
                 log_ctl.reset()
-                log_ctl.log(f"Could not read inputs: {exc}")
+                log_ctl.log(f"Check your settings: {exc}")
                 return
             if store is not None and state is not None:
                 store.save(state)
@@ -158,3 +159,39 @@ class LogFeature(Feature):
 
         win.On[self.wid("Run")].Clicked = lambda ev: on_run()
         win.On[self.wid("Cancel")].Clicked = lambda ev: on_cancel()
+
+
+class TrackFilterLogFeature(LogFeature):
+    """Log feature with a master track-filter checkbox and per-track dropdowns."""
+
+    track_filter_label_width = 130
+
+    def track_filter_rows(self, ui):
+        from .. import track_filter_ui
+
+        return track_filter_ui.build_track_filter_block(
+            ui, self, self.track_filter_label_width
+        )
+
+    def bind(self, ctx):
+        from .. import track_filter_ui
+
+        track_filter_ui.init_track_combos(ctx.items, self)
+        track_filter_ui.refresh_track_filter_ui(ctx, self, ctx.items)
+        track_filter_ui.bind_track_filter(ctx, self, ctx.items, ctx.win)
+        super().bind(ctx)
+        track_filter_ui.set_track_filter_enabled(
+            ctx.items,
+            self,
+            bool(ctx.items[self.wid("UseTrackFilter")].Checked),
+        )
+
+    def on_show(self, ctx):
+        from .. import track_filter_ui
+
+        track_filter_ui.refresh_track_filter_ui(ctx, self, ctx.items)
+        track_filter_ui.set_track_filter_enabled(
+            ctx.items,
+            self,
+            bool(ctx.items[self.wid("UseTrackFilter")].Checked),
+        )
