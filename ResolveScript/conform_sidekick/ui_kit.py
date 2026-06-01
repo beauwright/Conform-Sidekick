@@ -432,3 +432,80 @@ def nav_tree_key(item, key_by_label=None):
         if key:
             return key
     return ""
+
+
+def _walk_tree_items(tree):
+    """Yield top-level nav rows and their children."""
+    try:
+        top_count = int(tree.TopLevelItemCount())
+    except Exception:
+        return
+    for index in range(top_count):
+        top = None
+        for method_name in ("TopLevelItem", "GetTopLevelItem"):
+            method = getattr(tree, method_name, None)
+            if callable(method):
+                try:
+                    top = method(index)
+                    break
+                except Exception:
+                    continue
+        if top is None:
+            continue
+        yield top
+        child_count = None
+        for method_name in ("ChildCount", "GetChildCount"):
+            method = getattr(top, method_name, None)
+            if callable(method):
+                try:
+                    child_count = int(method())
+                    break
+                except Exception:
+                    continue
+        if child_count is None:
+            continue
+        for child_index in range(child_count):
+            child = None
+            for method_name in ("Child", "GetChild"):
+                method = getattr(top, method_name, None)
+                if callable(method):
+                    try:
+                        child = method(child_index)
+                        break
+                    except Exception:
+                        continue
+            if child is not None:
+                yield child
+
+
+def select_nav_tree_for_feature(tree, feature_id, key_by_label=None):
+    """Highlight the sidebar row for ``feature_id``. Returns True if found."""
+    if tree is None or not feature_id:
+        return False
+    for item in _walk_tree_items(tree):
+        if nav_tree_key(item, key_by_label) != feature_id:
+            continue
+        for target, method_name in (
+            (tree, "SetCurrentItem"),
+            (item, "SetSelected"),
+            (tree, "SetSelected"),
+        ):
+            method = getattr(target, method_name, None)
+            if not callable(method):
+                continue
+            try:
+                if method_name == "SetSelected":
+                    method(True)
+                else:
+                    method(item)
+                return True
+            except Exception:
+                try:
+                    if method_name == "SetSelected":
+                        method(0, True)
+                    else:
+                        method(item)
+                    return True
+                except Exception:
+                    continue
+    return False

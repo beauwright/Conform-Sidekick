@@ -10,6 +10,7 @@ from . import ui_kit
 from .resolve_api import ResolveAPI
 from .features import build_features, features_by_category
 from .features.base import AppContext
+from .state import app_state_store
 
 WINDOW_ID = "ConformSidekickWin"
 NAV_TREE_ID = "NavTree"
@@ -135,7 +136,19 @@ def _make_show_panel(ctx, features):
     return show_panel
 
 
-def _make_nav_controller(ctx, grouped, features_by_id, show_panel):
+def _initial_feature(grouped, features, features_by_id, app_store):
+    saved = app_store.load()
+    last_id = (saved.get("last_feature_id") or "").strip()
+    if last_id:
+        feature = features_by_id.get(last_id)
+        if feature is not None:
+            return feature
+    if grouped and grouped[0][2]:
+        return grouped[0][2][0]
+    return features[0] if features else None
+
+
+def _make_nav_controller(ctx, grouped, features_by_id, show_panel, app_store, nav_state):
     """Sidebar tree: mode rows switch panels; category rows pick last-used mode."""
 
     state = {
@@ -146,6 +159,7 @@ def _make_nav_controller(ctx, grouped, features_by_id, show_panel):
     def select_feature(feature):
         state["active"] = feature
         state["last_in_category"][feature.category] = feature
+        app_store.save({"last_feature_id": feature.id})
         show_panel(feature)
 
     def select_category(cat_id):
@@ -162,6 +176,8 @@ def _make_nav_controller(ctx, grouped, features_by_id, show_panel):
         select_feature(last)
 
     def on_nav_tree(ev):
+        if nav_state.get("bootstrapping"):
+            return
         tree = ctx.items.get(NAV_TREE_ID)
         item = ui_kit.get_event_item(ev)
         if item is None and tree is not None:
@@ -204,42 +220,36 @@ def main(injected_globals=None):
         except Exception as exc:
             print(f"Conform Sidekick: bind failed for {feature.id}: {exc}")
 
+    app_store = app_state_store()
+    nav_state = {"bootstrapping": True}
     show_panel = _make_show_panel(ctx, features)
     select_feature, on_nav_tree = _make_nav_controller(
-        ctx, grouped, features_by_id, show_panel
+        ctx, grouped, features_by_id, show_panel, app_store, nav_state
     )
 
     win.On[NAV_TREE_ID].ItemClicked = on_nav_tree
-    win.On[NAV_TREE_ID].CurrentItemChanged = on_nav_tree
 
     def on_close(ev):
         conn.dispatcher.ExitLoop()
 
     win.On[WINDOW_ID].Close = on_close
 
+    initial = _initial_feature(grouped, features, features_by_id, app_store)
+
     win.Show()
 
-    if features:
-        first = grouped[0][2][0] if grouped else features[0]
-        for feature in features:
-            panel = ctx.items.get(feature.panel_id)
-            if panel is None:
-                continue
-            try:
-                panel.Hidden = True
-            except Exception:
-                pass
-        active_panel = ctx.items.get(first.panel_id)
-        if active_panel is not None:
-            try:
-                active_panel.Hidden = True
-                active_panel.Hidden = False
-            except Exception:
-                pass
-        select_feature(first)
-        ui_kit.set_nav_tree_column_width(nav_tree, SIDEBAR_WIDTH)
-        ui_kit.recalc_layout(win)
-        ui_kit.pump(conn.dispatcher)
+    if initial is not None:
+        select_feature(initial)
+        ui_kit.select_nav_tree_for_feature(
+            nav_tree, initial.id, ctx.nav_tree_key_by_label
+        )
+
+    nav_state["bootstrapping"] = False
+    win.On[NAV_TREE_ID].CurrentItemChanged = on_nav_tree
+
+    ui_kit.set_nav_tree_column_width(nav_tree, SIDEBAR_WIDTH)
+    ui_kit.recalc_layout(win)
+    ui_kit.pump(conn.dispatcher)
 
     conn.dispatcher.RunLoop()
     win.Hide()
