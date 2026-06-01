@@ -2,11 +2,13 @@
 # Run from the extracted release folder (same directory as "Conform Sidekick.py").
 
 param(
-    [switch]$Force
+    [switch]$Force,
+    [switch]$SkipDeps
 )
 
 $ErrorActionPreference = "Stop"
 $Source = $PSScriptRoot
+. (Join-Path $Source "Find-ResolvePython.ps1")
 $Launcher = Join-Path $Source "Conform Sidekick.py"
 $Package = Join-Path $Source "conform_sidekick"
 
@@ -38,16 +40,15 @@ if (Test-Path $DestPkg) {
 }
 Copy-Item -Path $Package -Destination $Dest -Recurse -Force
 
-$HelpersSrc = Join-Path $Source "helpers"
-$HelpersDest = Join-Path $Dest "helpers"
-if (Test-Path $HelpersSrc) {
-    New-Item -ItemType Directory -Force -Path $HelpersDest | Out-Null
-    Get-ChildItem $HelpersSrc -File | ForEach-Object {
-        Copy-Item -Path $_.FullName -Destination $HelpersDest -Force
-    }
-    Write-Host "  Image helper installed."
-} else {
-    Write-Warning "  No helpers/ folder in this package (odd-res conversion may need Pillow in Resolve)."
+Write-Host ""
+try {
+    Install-ResolvePythonDeps -SourceDir $Source -SkipDeps:$SkipDeps
+} catch {
+    Write-Warning @"
+Could not install Python dependencies: $($_.Exception.Message)
+Fix Odd Resolution Photos needs Pillow in Resolve's Python.
+Re-run with -SkipDeps if deps are already installed, or install manually (see INSTALL.txt).
+"@
 }
 
 Write-Host ""

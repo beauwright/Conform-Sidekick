@@ -1,4 +1,4 @@
-# Build resolve-native Conform Sidekick packages (script + image helper per OS).
+# Build resolve-native Conform Sidekick packages (script + installer per OS).
 # Publishes ZIP artifacts; attaches them to GitHub Releases when a v* tag is pushed.
 
 name: Resolve Native Release
@@ -24,54 +24,29 @@ jobs:
         include:
           - os: windows-latest
             label: windows
-            helper_name: convert_photos_helper-x86_64-pc-windows-msvc.exe
             archive: ConformSidekick-Windows
-            install_ps1: true
           - os: macos-14
             label: macos
-            helper_name: convert_photos_helper-x86_64-apple-darwin
             archive: ConformSidekick-macOS
-            install_ps1: false
 
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install build dependencies
-        run: pip install pillow "pillow_heif==0.15.0" pyinstaller
-
-      - name: Build image helper (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          Set-Location PythonInterface
-          ./build_convert_photos_helper.ps1
-
-      - name: Build image helper (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          cd PythonInterface
-          chmod +x build_convert_photos_helper.sh
-          ./build_convert_photos_helper.sh
 
       - name: Assemble install package (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         env:
           ARCHIVE: ${{ matrix.archive }}
-          HELPER: ${{ matrix.helper_name }}
         run: |
           $pkg = $env:ARCHIVE
-          New-Item -ItemType Directory -Force -Path $pkg/helpers | Out-Null
+          New-Item -ItemType Directory -Force -Path $pkg | Out-Null
           Copy-Item "ResolveScript/Conform Sidekick.py" $pkg/
           Copy-Item "ResolveScript/conform_sidekick" $pkg/ -Recurse
           Get-ChildItem $pkg/conform_sidekick -Recurse -Directory -Filter __pycache__ | Remove-Item -Recurse -Force
-          Copy-Item "PythonInterface/dist/$env:HELPER" $pkg/helpers/
           Copy-Item "installer/Install-ConformSidekick.ps1" $pkg/
           Copy-Item "installer/Install-ConformSidekick.bat" $pkg/
+          Copy-Item "installer/Find-ResolvePython.ps1" $pkg/
+          Copy-Item "installer/requirements-resolve.txt" $pkg/
           Copy-Item "installer/README.md" $pkg/INSTALL.txt
           Compress-Archive -Path $pkg -DestinationPath "$pkg.zip" -Force
 
@@ -79,15 +54,15 @@ jobs:
         if: runner.os == 'macOS'
         env:
           ARCHIVE: ${{ matrix.archive }}
-          HELPER: ${{ matrix.helper_name }}
         run: |
           pkg="$ARCHIVE"
-          mkdir -p "$pkg/helpers"
+          mkdir -p "$pkg"
           cp "ResolveScript/Conform Sidekick.py" "$pkg/"
           cp -R "ResolveScript/conform_sidekick" "$pkg/"
           find "$pkg/conform_sidekick" -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
-          cp "PythonInterface/dist/$HELPER" "$pkg/helpers/"
           cp installer/install_conform_sidekick.sh "$pkg/"
+          cp installer/find_resolve_python.sh "$pkg/"
+          cp installer/requirements-resolve.txt "$pkg/"
           chmod +x "$pkg/install_conform_sidekick.sh"
           cp installer/README.md "$pkg/INSTALL.txt"
           zip -r "$pkg.zip" "$pkg"

@@ -20,15 +20,13 @@ window with a sidebar navigator.
 - No separate app to alt-tab to; it lives in Resolve.
 - In-process, so no "Connecting to DaVinci Resolve" step and far fewer
   connection failure modes than the old external sidecar.
-- No code-signing / notarization pipeline for the main app (one small optional
-  image helper binary may still be shipped for Pillow-free Resolve Python).
+- No code-signing / notarization pipeline for the main app.
 
 ## Architecture
 
 ```
 ResolveScript/                         # install into Resolve Scripts/Utility/
   Conform Sidekick.py                  # thin launcher (menu entry)
-  helpers/                             # optional: PyInstaller image helper exe(s)
   conform_sidekick/
     app.py                             # window + sidebar nav + dispatcher loop
     resolve_conn.py                    # resolve / fusion / ui / dispatcher
@@ -43,23 +41,20 @@ ResolveScript/                         # install into Resolve Scripts/Utility/
       interlaced.py / compound_clips.py / odd_res_photos.py
       rename_from_markers.py / lay_matching_clips.py / bulk_node_enable.py
     ops/
-      odd_res.py                       # 1px stretch (Pillow or helper exe)
+      odd_res.py                       # 1px stretch (Pillow in Resolve's Python)
     _vendor/timecode/                  # vendored pure-Python dependency
 ```
 
-### Two Python environments (dependency strategy)
+### Dependencies
 
 1. **In-Resolve script** — runs in Resolve's bundled Python. Pure-Python deps are
-   **vendored** as source (`_vendor/timecode`) so nothing requires `pip` in
-   Resolve.
-2. **Image helper (optional)** — a small **PyInstaller one-file executable** built
-   from `PythonInterface/convert_photos_cli.py` (same logic as
-   `PythonInterface/convert_photos.py`, with Pillow + pillow_heif bundled).
-   Used only when Pillow is not importable inside Resolve's Python. Odd-res
-   detection and `ReplaceClip` still run in-process; the helper only writes
-   the stretched file beside the original.
+   **vendored** as source (`_vendor/timecode`) so nothing requires `pip` for
+   timecode math.
+2. **Fix Odd Resolution Photos** — needs **Pillow** (+ **pillow_heif** for HEIC)
+   in Resolve's Python. The release installer runs `pip install` against Resolve's
+   python.org interpreter (not your shell `PATH`). See `installer/`.
 
-Rule of thumb: pure-Python dep → vendor it; compiled dep → bundle a helper exe.
+Rule of thumb: pure-Python dep → vendor it; compiled/image dep → pip into Resolve's Python.
 
 ### Timecode
 
@@ -70,8 +65,8 @@ library), not hand-rolled SMPTE math — especially for Lay Matching Bin Clips.
 
 - ✅ All six tools implemented and verified on Resolve Studio.
 - ✅ Responsive/cancellable project & timeline scans; sidebar navigation.
-- ⚠️ **Image helper** — in-process Pillow works when Resolve's Python has it;
-  otherwise install a built helper under `ResolveScript/helpers/` (see below).
+- ⚠️ **Fix Odd Resolution Photos** — run the installer so Pillow is pip-installed
+  into Resolve's Python (see `installer/README.md`).
 
 ## Install (development)
 
@@ -83,40 +78,21 @@ folder:
 - **Linux:** `~/.local/share/DaVinciResolve/Fusion/Scripts/Utility/`
 
 Both `Conform Sidekick.py` and the `conform_sidekick/` package must live in
-`Utility/`. If you use junctions/symlinks for dev, also link **`helpers/`**
-(see `link_to_resolve.ps1`). Launch via **Workspace → Scripts → Utility →
-Conform Sidekick**.
+`Utility/`. Launch via **Workspace → Scripts → Utility → Conform Sidekick**.
 
-### Optional: image helper
+For odd-res photo conversion during development, pip install into Resolve's Python:
 
-If **Fix Odd Resolution Photos** reports that Pillow is unavailable, build and
-copy the helper:
-
-```powershell
-cd PythonInterface
-pip install -r requirements.txt
-.\build_convert_photos_helper.ps1
+```bash
+# macOS example — use the version Resolve actually loads
+/Library/Frameworks/Python.framework/Versions/3.11/bin/python3 -m pip install -r installer/requirements-resolve.txt
 ```
 
-Then copy the file from `PythonInterface/dist/` into `ResolveScript/helpers/`
-next to your installed script (create `helpers/` if needed). On macOS/Linux use
-`build_convert_photos_helper.sh` instead.
-
-The odd-res feature looks for these names (first match wins):
-
-| Platform | Filenames searched |
-|----------|-------------------|
-| Windows | `convert_photos_helper.exe`, `convert_photos_helper-x86_64-pc-windows-msvc.exe` |
-| macOS | `convert_photos_helper`, `convert_photos_helper-x86_64-apple-darwin` |
-| Linux | `convert_photos_helper`, `convert_photos_helper-x86_64-unknown-linux-gnu` |
-
-Search paths: `helpers/` under the install folder, the install folder itself,
-or `CONFORM_SIDEKICK_HELPER` pointing at the executable.
+Or run `installer/install_conform_sidekick.sh` / `Install-ConformSidekick.ps1` from a release-style folder.
 
 ## Shipping
 
 GitHub Actions (`.github/workflows/resolve-native-release.yml`) builds per-OS
-ZIPs: script package + image helper + installer. End users extract the ZIP and
+ZIPs: script package + installer (which pip-installs Pillow deps). End users extract the ZIP and
 run:
 
 - **Windows:** `Install-ConformSidekick.bat`
@@ -129,6 +105,5 @@ this branch.
 
 The `TauriApp/` and `PythonInterface/even_photos_resolve.py` sidecar remain on
 `main` for reference. The resolve-native branch does not use them; odd-res
-conversion is in `conform_sidekick.ops.odd_res` with an optional
-`convert_photos` helper instead of the old all-in-one `even_photos_resolve`
-binary.
+conversion is in `conform_sidekick.ops.odd_res` (Pillow in Resolve's Python).
+Legacy PyInstaller helper scripts under `PythonInterface/` remain for reference only.

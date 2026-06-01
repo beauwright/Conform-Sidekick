@@ -5,6 +5,15 @@
 set -euo pipefail
 
 SOURCE="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=find_resolve_python.sh
+source "$SOURCE/find_resolve_python.sh"
+
+SKIP_DEPS=0
+for arg in "$@"; do
+  case "$arg" in
+    --skip-deps) SKIP_DEPS=1 ;;
+  esac
+done
 LAUNCHER="$SOURCE/Conform Sidekick.py"
 PACKAGE="$SOURCE/conform_sidekick"
 
@@ -38,12 +47,17 @@ cp -f "$LAUNCHER" "$DEST/"
 rm -rf "$DEST/conform_sidekick"
 cp -R "$PACKAGE" "$DEST/"
 
-if [[ -d "$SOURCE/helpers" ]]; then
-  mkdir -p "$DEST/helpers"
-  cp -f "$SOURCE/helpers/"* "$DEST/helpers/" 2>/dev/null || true
-  echo "  Image helper installed."
+echo ""
+if [[ "$SKIP_DEPS" -eq 0 ]]; then
+  install_resolve_python_deps "$SOURCE" || {
+    echo ""
+    echo "Warning: could not install Python dependencies." >&2
+    echo "Fix Odd Resolution Photos needs Pillow in Resolve's Python." >&2
+    echo "Re-run with dependencies only: ./install_conform_sidekick.sh --skip-deps" >&2
+    echo "Or install manually after locating Resolve's Python (see INSTALL.txt)." >&2
+  }
 else
-  echo "  Warning: no helpers/ in this package." >&2
+  echo "Skipped Python dependency install (--skip-deps)."
 fi
 
 echo ""
