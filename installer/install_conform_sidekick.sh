@@ -25,10 +25,12 @@ fi
 
 case "$(uname -s)" in
   Darwin)
-    DEST="$HOME/Library/Application Support/Blackmagic Design/DaVinci Resolve/Fusion/Scripts/Utility"
+    UTILITY="$HOME/Library/Application Support/Blackmagic Design/DaVinci Resolve/Fusion/Scripts/Utility"
+    SUPPORT="$HOME/Library/Application Support/Conform Sidekick"
     ;;
   Linux)
-    DEST="$HOME/.local/share/DaVinciResolve/Fusion/Scripts/Utility"
+    UTILITY="$HOME/.local/share/DaVinciResolve/Fusion/Scripts/Utility"
+    SUPPORT="$HOME/.local/share/Conform Sidekick"
     ;;
   *)
     echo "Unsupported OS: $(uname -s)" >&2
@@ -36,16 +38,28 @@ case "$(uname -s)" in
     ;;
 esac
 
-mkdir -p "$DEST"
+SUPPORT_PKG="$SUPPORT/conform_sidekick"
+
+mkdir -p "$UTILITY" "$SUPPORT"
 
 echo "Installing Conform Sidekick..."
-echo "  From: $SOURCE"
-echo "    To: $DEST"
+echo "  Launcher -> $UTILITY"
+echo "  Package  -> $SUPPORT_PKG"
 echo ""
 
-cp -f "$LAUNCHER" "$DEST/"
-rm -rf "$DEST/conform_sidekick"
-cp -R "$PACKAGE" "$DEST/"
+cp -f "$LAUNCHER" "$UTILITY/"
+
+# Upgrade from older installs that put the package under Utility/.
+if [[ -d "$UTILITY/conform_sidekick" ]]; then
+  echo "Removing legacy package from Utility/..."
+  rm -rf "$UTILITY/conform_sidekick"
+fi
+if [[ -d "$UTILITY/helpers" ]]; then
+  rm -rf "$UTILITY/helpers"
+fi
+
+rm -rf "$SUPPORT_PKG"
+cp -R "$PACKAGE" "$SUPPORT_PKG"
 
 echo ""
 if [[ "$SKIP_DEPS" -eq 0 ]]; then
@@ -62,4 +76,4 @@ fi
 
 echo ""
 echo "Done. In Resolve: Workspace -> Scripts -> Utility -> Conform Sidekick"
-echo "Restart Resolve, or use Scripts -> Reload if your version supports it."
+echo "Close and re-open the script if needed; restart Resolve if changes do not appear."

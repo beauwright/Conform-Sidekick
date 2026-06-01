@@ -7,7 +7,24 @@ End users download a platform ZIP from [GitHub Releases](https://github.com/beau
 | **Windows** | Double-click `Install-ConformSidekick.bat` (or run `Install-ConformSidekick.ps1`) |
 | **macOS / Linux** | `chmod +x install_conform_sidekick.sh && ./install_conform_sidekick.sh` |
 
-That copies `Conform Sidekick.py` and `conform_sidekick/` into Resolve’s **Scripts → Utility** folder, then installs Python packages into **Resolve’s Python** (not whatever is on your shell `PATH`).
+That installs:
+
+| What | Where |
+|------|--------|
+| `Conform Sidekick.py` (launcher only) | Resolve **Scripts → Utility** |
+| `conform_sidekick/` (full package) | Application Support (see below) |
+
+Support directory (package root):
+
+- **macOS:** `~/Library/Application Support/Conform Sidekick/`
+- **Windows:** `%APPDATA%\Conform Sidekick\`
+- **Linux:** `~/.local/share/Conform Sidekick/`
+
+Only the launcher lives under Utility so Resolve's script menu shows a single
+entry. Upgrading removes any legacy `Utility/conform_sidekick/` folder from
+older installs.
+
+Then the installer pip-installs into **Resolve's Python** (not your shell `PATH`).
 
 ## Prerequisites
 
@@ -24,8 +41,8 @@ Match the Python version shown under **Fusion → Fusion Settings → Script →
 
 Only packages needed for **Fix Odd Resolution Photos** (Pillow + pillow_heif). The `timecode` library is **bundled inside** `conform_sidekick/_vendor/` — no pip install needed for timecode.
 
-Override the interpreter with `CONFORM_SIDEKICK_PYTHON` if needed.
+Override the interpreter with `CONFORM_SIDEKICK_PYTHON`. Override the package location with `CONFORM_SIDEKICK_HOME`.
 
 Skip dependency install: `-SkipDeps` (PowerShell) or `--skip-deps` (shell).
 
-Developers can use junctions instead: `ResolveScript/link_to_resolve.ps1`.
+Developers can use link scripts instead: `ResolveScript/link_to_resolve.ps1` or `link_to_resolve.sh`.

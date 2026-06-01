@@ -21,24 +21,36 @@ Extract the release ZIP first, then run this installer from that folder.
 "@
 }
 
-$Dest = Join-Path $env:APPDATA "Blackmagic Design\DaVinci Resolve\Support\Fusion\Scripts\Utility"
-New-Item -ItemType Directory -Force -Path $Dest | Out-Null
+$Utility = Join-Path $env:APPDATA "Blackmagic Design\DaVinci Resolve\Support\Fusion\Scripts\Utility"
+$Support = Join-Path $env:APPDATA "Conform Sidekick"
+$SupportPkg = Join-Path $Support "conform_sidekick"
+
+New-Item -ItemType Directory -Force -Path $Utility | Out-Null
+New-Item -ItemType Directory -Force -Path $Support | Out-Null
 
 Write-Host "Installing Conform Sidekick..."
-Write-Host "  From: $Source"
-Write-Host "    To: $Dest"
+Write-Host "  Launcher -> $Utility"
+Write-Host "  Package  -> $SupportPkg"
 Write-Host ""
 
-Copy-Item -Path $Launcher -Destination $Dest -Force
+Copy-Item -Path $Launcher -Destination $Utility -Force
 
-$DestPkg = Join-Path $Dest "conform_sidekick"
-if ((Test-Path $DestPkg) -and -not $Force) {
-    Write-Host "Removing previous conform_sidekick package..."
+# Upgrade from older installs that put the package under Utility/.
+$LegacyPkg = Join-Path $Utility "conform_sidekick"
+if (Test-Path $LegacyPkg) {
+    Write-Host "Removing legacy package from Utility/..."
+    Remove-Item -Path $LegacyPkg -Recurse -Force
 }
-if (Test-Path $DestPkg) {
-    Remove-Item -Path $DestPkg -Recurse -Force
+$LegacyHelpers = Join-Path $Utility "helpers"
+if (Test-Path $LegacyHelpers) {
+    Remove-Item -Path $LegacyHelpers -Recurse -Force
 }
-Copy-Item -Path $Package -Destination $Dest -Recurse -Force
+
+if (Test-Path $SupportPkg) {
+    Write-Host "Updating conform_sidekick package..."
+    Remove-Item -Path $SupportPkg -Recurse -Force
+}
+Copy-Item -Path $Package -Destination $SupportPkg -Recurse -Force
 
 Write-Host ""
 try {
@@ -53,4 +65,4 @@ Re-run with -SkipDeps if deps are already installed, or install manually (see IN
 
 Write-Host ""
 Write-Host "Done. In Resolve: Workspace -> Scripts -> Utility -> Conform Sidekick"
-Write-Host "Restart Resolve, or use Scripts -> Reload if your version supports it."
+Write-Host "Close and re-open the script if needed; restart Resolve if changes do not appear."

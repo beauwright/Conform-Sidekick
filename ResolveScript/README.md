@@ -25,25 +25,33 @@ window with a sidebar navigator.
 ## Architecture
 
 ```
-ResolveScript/                         # install into Resolve Scripts/Utility/
-  Conform Sidekick.py                  # thin launcher (menu entry)
+Fusion/Scripts/Utility/                 # Resolve script menu (one entry only)
+  Conform Sidekick.py                   # thin launcher
+
+Application Support/Conform Sidekick/   # outside Resolve's Scripts tree
   conform_sidekick/
-    app.py                             # window + sidebar nav + dispatcher loop
-    resolve_conn.py                    # resolve / fusion / ui / dispatcher
-    resolve_api.py                     # media-pool / timeline queries
-    timecode_utils.py                  # frame <-> TC via vendored timecode lib
-    ui_kit.py                          # log panel, pump, buttons, Tree helpers
-    state.py                           # per-feature persisted UI state
-    timeline_filters.py                # shared track / In-Out / regex helpers
+    app.py                              # window + sidebar nav + dispatcher loop
+    paths.py                            # support-dir resolution
+    resolve_conn.py                     # resolve / fusion / ui / dispatcher
+    resolve_api.py                      # media-pool / timeline queries
+    timecode_utils.py                   # frame <-> TC via vendored timecode lib
+    ui_kit.py                           # log panel, pump, buttons, Tree helpers
+    state.py                            # per-feature persisted UI state
+    timeline_filters.py                 # shared track / In-Out / regex helpers
     features/
-      table_scan.py                    # scan -> Tree -> Go/Copy timecode
-      log_feature.py                   # form + log + Run/Cancel
+      table_scan.py                     # scan -> Tree -> Go/Copy timecode
+      log_feature.py                    # form + log + Run/Cancel
       interlaced.py / compound_clips.py / odd_res_photos.py
       rename_from_markers.py / lay_matching_clips.py / bulk_node_enable.py
     ops/
-      odd_res.py                       # 1px stretch (Pillow in Resolve's Python)
-    _vendor/timecode/                  # vendored pure-Python dependency
+      odd_res.py                        # 1px stretch (Pillow in Resolve's Python)
+    _vendor/timecode/                   # vendored pure-Python dependency
+  helpers/                              # optional legacy PyInstaller image helper
 ```
+
+Resolve scans every `.py` under `Scripts/` recursively, so only the launcher
+lives in `Utility/`. The package is installed under Application Support (see
+`conform_sidekick.paths` and `installer/`).
 
 ### Dependencies
 
@@ -70,15 +78,23 @@ library), not hand-rolled SMPTE math — especially for Lay Matching Bin Clips.
 
 ## Install (development)
 
-Copy or symlink the `ResolveScript` folder contents into Resolve's Scripts
-folder:
+Use the link scripts so only the launcher appears under Utility:
 
-- **Windows:** `%APPDATA%\Blackmagic Design\DaVinci Resolve\Support\Fusion\Scripts\Utility\`
-- **macOS:** `~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Fusion/Scripts/Utility/`
-- **Linux:** `~/.local/share/DaVinciResolve/Fusion/Scripts/Utility/`
+- **Windows:** `ResolveScript/link_to_resolve.ps1`
+- **macOS / Linux:** `chmod +x ResolveScript/link_to_resolve.sh && ./ResolveScript/link_to_resolve.sh`
 
-Both `Conform Sidekick.py` and the `conform_sidekick/` package must live in
-`Utility/`. Launch via **Workspace → Scripts → Utility → Conform Sidekick**.
+That hardlinks/symlinks `Conform Sidekick.py` into Resolve's Utility folder and
+links `conform_sidekick/` into Application Support:
+
+- **Windows:** `%APPDATA%\Conform Sidekick\conform_sidekick\`
+- **macOS:** `~/Library/Application Support/Conform Sidekick/conform_sidekick/`
+- **Linux:** `~/.local/share/Conform Sidekick/conform_sidekick/`
+
+Launch via **Workspace → Scripts → Utility → Conform Sidekick**.
+
+Override the support directory with `CONFORM_SIDEKICK_HOME`. The launcher also
+falls back to a sibling `conform_sidekick/` folder next to itself for quick
+repo checkout testing without linking.
 
 For odd-res photo conversion during development, pip install into Resolve's Python:
 

@@ -53,10 +53,9 @@ def _resolve_script_roots():
     """Directories where ``helpers/`` or a helper exe may live."""
     roots = []
     try:
-        import conform_sidekick as pkg
+        from ..paths import get_support_home
 
-        pkg_root = os.path.dirname(os.path.abspath(pkg.__file__))
-        install_root = os.path.dirname(pkg_root)
+        install_root = get_support_home()
         roots.append(install_root)
         roots.append(_realpath(install_root))
     except Exception:
