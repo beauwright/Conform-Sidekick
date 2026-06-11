@@ -7,6 +7,7 @@ small Include/Exclude dropdown plus a master checkbox to enable filtering.
 from __future__ import annotations
 
 from . import timeline_filters as tf
+from . import ui_kit
 from . import ui_strings as us
 
 MAX_VIDEO_TRACKS = 24
@@ -104,8 +105,19 @@ def refresh_track_filter_ui(ctx, feature, items):
             combo.CurrentIndex = _TRACK_COMBO_EXCLUDE
 
 
+def set_track_filter_block_visible(items, feature, visible: bool):
+    """Show or hide the per-track dropdown block."""
+    block = items.get(feature.wid("TrackFilterRows"))
+    if block is not None:
+        try:
+            block.Hidden = not visible
+        except Exception:
+            pass
+
+
 def set_track_filter_enabled(items, feature, enabled: bool):
     """Enable or disable per-track dropdowns based on the master checkbox."""
+    set_track_filter_block_visible(items, feature, enabled)
     for i in range(1, MAX_VIDEO_TRACKS + 1):
         row = items.get(track_row_wid(feature, i))
         combo = items.get(track_select_wid(feature, i))
@@ -169,5 +181,25 @@ def bind_track_filter(ctx, feature, items, win):
     def on_toggle(_ev):
         enabled = bool(items[feature.wid("UseTrackFilter")].Checked)
         set_track_filter_enabled(items, feature, enabled)
+        ui_kit.recalc_layout(ctx.win)
+        ui_kit.pump(ctx.dispatcher)
 
     win.On[feature.wid("UseTrackFilter")].Clicked = on_toggle
+
+
+def wire_track_filter(ctx, feature, items, win, state=None):
+    """Init track rows, optionally restore state, and sync visibility.
+
+    Call order matches :class:`TrackFilterLogFeature` so per-track rows are
+    revealed from the timeline before persisted Include/Skip values are applied.
+    """
+    init_track_combos(items, feature)
+    refresh_track_filter_ui(ctx, feature, items)
+    bind_track_filter(ctx, feature, items, win)
+    if state is not None:
+        apply_track_filter_state(items, feature, state)
+    set_track_filter_enabled(
+        items,
+        feature,
+        bool(items[feature.wid("UseTrackFilter")].Checked),
+    )

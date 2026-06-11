@@ -11,6 +11,7 @@ from .rename_from_markers import RenameFromMarkersFeature
 from .lay_matching_clips import LayMatchingClipsFeature
 from .bulk_node_enable import BulkNodeEnableFeature
 from .grade_bypass import GradeBypassFeature
+from .version_audit import VersionAuditFeature
 
 # (category_id, label shown on the category button)
 CATEGORIES = (
@@ -25,6 +26,7 @@ def build_features():
         InterlacedFeature(),
         CompoundClipsFeature(),
         OddResPhotosFeature(),
+        VersionAuditFeature(),
         RenameFromMarkersFeature(),
         LayMatchingClipsFeature(),
         BulkNodeEnableFeature(),

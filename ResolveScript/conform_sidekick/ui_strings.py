@@ -53,6 +53,39 @@ PLACEHOLDER_GRADE_BYPASS_IGNORE = (
     "Optional — nodes to skip (e.g. already off); use ^ and $ for exact labels"
 )
 
+VERSION_AUDIT_INTRO = (
+    "Compare a VFX delivery file to the current timeline. "
+    "Flag missing deliveries, newer/older versions vs the sheet, and cover warnings."
+)
+LABEL_VFX_CSV = "VFX delivery file:"
+PLACEHOLDER_VFX_CSV = "Full path to CSV or .xlsx from VFX"
+LABEL_VFX_KEY_COLUMN = "VFX key column:"
+PLACEHOLDER_VFX_KEY_COLUMN = "Header name or 1-based column index (e.g. shot_id or 1)"
+CHECK_VFX_HAS_HEADER = "First row is a header (uncheck for a single key column)"
+CHECK_STRIP_EXTENSION = "Ignore file extensions (.mov, .exr, etc.)"
+CHECK_NORMALIZE_NUMERIC = "Normalize numeric segments (ignore leading zeros)"
+CHECK_DETECT_VERSION_DRIFT = (
+    "Detect newer / older versions in project (when sheet key is missing)"
+)
+LABEL_VERSION_PRESET = "Version naming:"
+PLACEHOLDER_VERSION_PATTERN = (
+    r"Custom regex with base + ver groups — e.g. ^(?P<base>.+)_v(?P<ver>\d+)$"
+)
+LABEL_TIMELINE_KEY = "Match timeline by:"
+CHECK_WARN_COVER = (
+    "Warn when higher tracks (within track filter) cover a match"
+)
+VERSION_AUDIT_STATUS_IDLE = (
+    "Set the VFX CSV path and key column, then click Audit."
+)
+VERSION_AUDIT_NO_TIMELINE = "Open a timeline in Resolve first."
+VERSION_AUDIT_NO_CSV = "Enter the path to the VFX delivery file (CSV or .xlsx)."
+VERSION_AUDIT_NO_KEY_COLUMN = "Enter the VFX key column name or index."
+LABEL_EXPORT_CSV = "Export CSV to:"
+PLACEHOLDER_EXPORT_CSV = "Path for audit results (auto-filled after Audit)"
+VERSION_AUDIT_NO_RESULTS = "Run an audit first, then export."
+VERSION_AUDIT_NO_EXPORT_PATH = "Enter a path for the export CSV."
+
 
 def scope_area_label(scope: str) -> str:
     """Human label for status messages ('project' or 'timeline' scope key)."""

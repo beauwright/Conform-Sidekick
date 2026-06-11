@@ -188,6 +188,7 @@ class TrackFilterLogFeature(LogFeature):
 
     def on_show(self, ctx):
         from .. import track_filter_ui
+        from .. import ui_kit
 
         track_filter_ui.refresh_track_filter_ui(ctx, self, ctx.items)
         track_filter_ui.set_track_filter_enabled(
@@ -195,3 +196,5 @@ class TrackFilterLogFeature(LogFeature):
             self,
             bool(ctx.items[self.wid("UseTrackFilter")].Checked),
         )
+        ui_kit.recalc_layout(ctx.win)
+        ui_kit.pump(ctx.dispatcher)

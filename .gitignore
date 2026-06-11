@@ -1,4 +1,5 @@
 venv
+.tmp_pylibs/
 __pycache__
 .DS_Store
 .idea
