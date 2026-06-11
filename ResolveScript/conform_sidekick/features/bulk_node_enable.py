@@ -21,6 +21,7 @@ DEFAULTS = {
     "label_regex": "",
     "name_filter": "",
     "layer_spec": "",
+    "include_color_group": False,
     "all_versions": False,
     "use_track_filter": False,
     "track_filter": "",
@@ -61,6 +62,11 @@ class BulkNodeEnableFeature(TrackFilterLogFeature):
                 {"ID": self.wid("LayerSpec"),
                  "PlaceholderText": "Blank = layer 1; all = every layer; or 1, 3-5",
                  "Weight": 1})),
+            ui.CheckBox(
+                {"ID": self.wid("IncludeColorGroup"),
+                 "Text": us.CHECK_INCLUDE_COLOR_GROUP,
+                 "Checked": False, "Weight": 0}
+            ),
             _row(ui, us.LABEL_CLIP_NAME_FILTER, ui.LineEdit(
                 {"ID": self.wid("NameFilter"),
                  "PlaceholderText": us.PLACEHOLDER_CLIP_NAME_FILTER,
@@ -107,6 +113,9 @@ class BulkNodeEnableFeature(TrackFilterLogFeature):
         items[self.wid("LabelRegex")].Text = state["label_regex"]
         items[self.wid("NameFilter")].Text = state["name_filter"]
         items[self.wid("LayerSpec")].Text = state["layer_spec"]
+        items[self.wid("IncludeColorGroup")].Checked = bool(
+            state.get("include_color_group", False)
+        )
         track_filter_ui.apply_track_filter_state(items, self, state)
         items[self.wid("UseInOut")].Checked = bool(state.get("use_inout", False))
         items[self.wid("UseClipColor")].Checked = bool(state.get("use_clip_color", False))
@@ -134,6 +143,9 @@ class BulkNodeEnableFeature(TrackFilterLogFeature):
             "label_regex": items[self.wid("LabelRegex")].Text,
             "name_filter": items[self.wid("NameFilter")].Text,
             "layer_spec": items[self.wid("LayerSpec")].Text,
+            "include_color_group": bool(
+                items[self.wid("IncludeColorGroup")].Checked
+            ),
             "all_versions": bool(items[self.wid("AllVersions")].Checked),
             "use_inout": bool(items[self.wid("UseInOut")].Checked),
             "track_filter_spec": track_spec,
@@ -146,6 +158,7 @@ class BulkNodeEnableFeature(TrackFilterLogFeature):
             "label_regex": params["label_regex"],
             "name_filter": params["name_filter"],
             "layer_spec": params["layer_spec"],
+            "include_color_group": params["include_color_group"],
             "all_versions": params["all_versions"],
             "use_inout": params["use_inout"],
             "use_clip_color": use_clip_color,

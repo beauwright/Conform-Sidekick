@@ -1,15 +1,15 @@
 """Bypass / restore the color grade on the current clip in the Color page.
 
-Disables every node except the configured color input and output endpoints on
+Disables every node except the configured color input and output endpoints, plus
+any nodes matching an optional leave-alone label regex, on
 ``Timeline.GetCurrentVideoItem()``. Optionally includes the clip's shared
 Color Group pre-clip and post-clip node graphs (see ``TimelineItem.GetColorGroup``).
 
-Restore re-enables only the nodes that were turned off by the last bypass
-(stored in feature state), so nodes that were already disabled before bypass
-are not touched on restore.
-
-The Resolve scripting README documents ``Graph.SetNodeEnabled`` but not
-``GetNodeEnabled``, so prior enabled state cannot be read from the API.
+Restore re-enables only the nodes recorded when bypass ran for that clip
+(stored in per-clip feature state). The Resolve API documents
+``Graph.SetNodeEnabled`` but not ``GetNodeEnabled``, and ``SetNodeEnabled`` always
+returns ``True`` even when the node is already off — so nodes that were disabled
+before bypass cannot be detected reliably and may be re-enabled on restore.
 Collapsed node groups inside a single graph are not exposed by the API either;
 only top-level nodes from ``Graph.GetNumNodes()`` are reachable.
 """
@@ -46,6 +46,42 @@ def _clip_key(item):
         except Exception:
             pass
     return "|".join(parts)
+
+
+def current_clip_key(conn):
+    """Return the snapshot key for ``Timeline.GetCurrentVideoItem()``, or ``""``."""
+    timeline = conn.get_timeline()
+    if timeline is None:
+        return ""
+    try:
+        item = timeline.GetCurrentVideoItem()
+    except Exception:
+        return ""
+    if item is None:
+        return ""
+    return _clip_key(item)
+
+
+def normalize_snapshots_by_clip(raw):
+    """Return ``{clip_key: snapshot}`` from persisted state, migrating legacy data."""
+    if not isinstance(raw, dict):
+        return {}
+    by_clip = raw.get("bypass_snapshots_by_clip")
+    if not isinstance(by_clip, dict):
+        by_clip = {}
+    else:
+        by_clip = dict(by_clip)
+    legacy = raw.get("bypass_snapshot") or {}
+    if isinstance(legacy, dict):
+        legacy_key = (legacy.get("clip_key") or "").strip()
+        if legacy_key and legacy_key not in by_clip:
+            by_clip[legacy_key] = legacy
+    return by_clip
+
+
+def snapshot_has_graph_data(snapshot):
+    """True when ``snapshot`` contains bypass data that restore can apply."""
+    return bool(_snapshot_graph_entries(snapshot or {}))
 
 
 def _clip_label(item):
@@ -354,6 +390,31 @@ def _restore_graph(graph, location, graph_data, dry_run, log, pump, result, shou
         pump()
 
 
+def _ignore_indices_for_graph(graph, label_regex, log, location):
+    """Return node indices whose labels match ``label_regex``, or ``set()``."""
+    label_pattern, label_err = tf.compile_regex(label_regex)
+    if label_err is not None:
+        return None, f"Invalid ignore label regex: {label_err}"
+    if label_pattern is None:
+        return set(), None
+    targets, total = _target_indices_for_graph(
+        graph, None, label_pattern, log, location
+    )
+    if total <= 0:
+        return set(), None
+    if not targets:
+        log(
+            f"  [info] {location}: no node label matches ignore regex "
+            f"/{label_regex}/ (graph has {total} node(s))."
+        )
+    elif len(targets) > 1:
+        log(
+            f"  [info] {location}: ignore regex matched {len(targets)} node(s) "
+            f"{targets}; all will be left alone."
+        )
+    return set(targets), None
+
+
 def _bypass_graph(
     graph,
     location,
@@ -361,6 +422,7 @@ def _bypass_graph(
     input_label_regex,
     output_index_spec,
     output_label_regex,
+    ignore_label_regex,
     dry_run,
     log,
     pump,
@@ -397,7 +459,14 @@ def _bypass_graph(
         log(f"  [SKIP] {location}: empty node graph.")
         return None
 
-    keep_set = input_set | output_set
+    ignore_set, ignore_err = _ignore_indices_for_graph(
+        graph, ignore_label_regex, log, location
+    )
+    if ignore_err is not None:
+        log(f"  [SKIP] {ignore_err}")
+        return None
+
+    keep_set = input_set | output_set | ignore_set
     disabled_by_bypass = []
 
     if not input_set and ((input_index_spec or "").strip() or (input_label_regex or "").strip()):
@@ -406,10 +475,14 @@ def _bypass_graph(
         log(f"  [info] {location}: color output not on this graph.")
 
     if keep_set:
+        parts = [f"keeping node(s) {sorted(keep_set)}"]
+        if ignore_set:
+            parts.append(f"{len(ignore_set)} ignored")
         log(
-            f"  {location}: keeping node(s) {sorted(keep_set)}; "
+            f"  {location}: {parts[0]}; "
             f"disabling {total_nodes - len(keep_set)} other node(s) "
             f"(of {total_nodes} total)."
+            + (f" ({parts[1]})" if ignore_set else "")
         )
     else:
         log(
@@ -462,6 +535,7 @@ def _bypass_graph(
     return {
         "disabled_indices": disabled_by_bypass,
         "keep_indices": sorted(keep_set),
+        "ignore_indices": sorted(ignore_set),
     }
 
 
@@ -473,6 +547,7 @@ def grade_bypass(
     output_index_spec,
     output_label_regex,
     layer_spec,
+    ignore_label_regex="",
     include_color_group=False,
     bypass_snapshot=None,
     dry_run=False,
@@ -549,29 +624,42 @@ def grade_bypass(
     stored_graphs = _snapshot_graph_entries(bypass_snapshot)
     if restore and not stored_graphs:
         log(
-            "Nothing to restore. Run Bypass on this clip first "
+            "Nothing to restore for this clip. Bypass it first "
             "(or preview was used last time)."
         )
         result["error"] = True
+        result["clip_key"] = clip_key
         _restore_page(resolve, original_page, page_switched, log)
         return result
 
+    result["clip_key"] = clip_key
+
     if restore:
-        stored_key = (bypass_snapshot.get("clip_key") or "").strip()
-        if stored_key and stored_key != clip_key:
-            log(
-                "  [warn] Stored bypass was for a different clip. "
-                "Restore will still apply to matching graph data only."
-            )
+        stored_label = (bypass_snapshot.get("clip_label") or "").strip()
+        if stored_label:
+            log(f"  Restoring bypass stored for: {stored_label}")
     else:
         log(f"  Color input:  index='{input_index_spec}'  label=/{input_label_regex}/")
         log(f"  Color output: index='{output_index_spec}'  label=/{output_label_regex}/")
+        if (ignore_label_regex or "").strip():
+            log(f"  Leave alone:  label=/{ignore_label_regex}/")
+        log(
+            "  Note: nodes already disabled before bypass cannot be detected "
+            "via the Resolve API; list them under leave-alone regex instead."
+        )
 
     graphs_to_visit = _collect_graphs(
         item, layers, include_color_group if not restore else True, log=log
     )
 
     if not restore:
+        _, ignore_err = tf.compile_regex(ignore_label_regex)
+        if ignore_err is not None:
+            log(f"Invalid leave-alone label regex: {ignore_err}")
+            result["error"] = True
+            _restore_page(resolve, original_page, page_switched, log)
+            return result
+
         endpoint_err = _validate_bypass_endpoints(
             graphs_to_visit,
             input_index_spec,
@@ -632,6 +720,7 @@ def grade_bypass(
                 input_label_regex,
                 output_index_spec,
                 output_label_regex,
+                ignore_label_regex,
                 dry_run,
                 log,
                 pump,
@@ -660,7 +749,7 @@ def grade_bypass(
     if dry_run:
         log("  (Dry run: no changes were applied.)")
     elif restore and result["nodes_changed"] and not result["error"]:
-        log("  Bypass snapshot cleared after restore.")
+        log("  Bypass snapshot cleared for this clip after restore.")
     pump()
 
     return result

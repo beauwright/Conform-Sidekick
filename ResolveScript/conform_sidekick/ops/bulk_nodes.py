@@ -40,6 +40,179 @@ def _target_indices_for_graph(graph, index_set, label_pattern, log, location):
     return [], n
 
 
+def _color_group_name(color_group):
+    try:
+        return color_group.GetName() or "(unnamed group)"
+    except Exception:
+        return "(unnamed group)"
+
+
+def _process_graph_targets(
+    graph,
+    location,
+    clip_name,
+    enabled,
+    index_set,
+    label_pattern,
+    label_regex,
+    index_spec,
+    dry_run,
+    log,
+    maybe_pump,
+    result,
+):
+    """Enable/disable target nodes on one graph. Returns True if any node changed."""
+    targets, total_nodes = _target_indices_for_graph(
+        graph, index_set, label_pattern, log, location
+    )
+
+    if total_nodes <= 0:
+        log(f"  [SKIP] {location} '{clip_name}': empty graph.")
+        return False
+
+    if not targets:
+        if label_pattern is not None:
+            log(
+                f"  [SKIP] {location} '{clip_name}': no node label matches /{label_regex}/ "
+                f"(graph has {total_nodes} node(s))."
+            )
+        else:
+            missing = sorted(i for i in index_set if i < 1 or i > total_nodes)
+            result["nodes_skipped_short_graph"] += len(missing)
+            log(
+                f"  [SKIP] {location} '{clip_name}': requested {sorted(index_set)} "
+                f"but graph has only {total_nodes} node(s)."
+            )
+        return False
+
+    changed = False
+    for node_idx in targets:
+        try:
+            node_label = graph.GetNodeLabel(node_idx) or ""
+        except Exception:
+            node_label = ""
+        label_part = f" (label='{node_label}')" if node_label else ""
+
+        if dry_run:
+            result["nodes_changed"] += 1
+            log(
+                f"  [PLAN] {location} '{clip_name}': node {node_idx}{label_part} -> "
+                f"{'Enabled' if enabled else 'Disabled'}"
+            )
+            maybe_pump()
+            changed = True
+            continue
+
+        try:
+            ok = bool(graph.SetNodeEnabled(node_idx, enabled))
+        except Exception as exc:
+            ok = False
+            log(
+                f"  [FAIL] {location} '{clip_name}': node {node_idx}{label_part} "
+                f"SetNodeEnabled raised: {exc}"
+            )
+
+        if ok:
+            result["nodes_changed"] += 1
+            log(
+                f"  [OK]   {location} '{clip_name}': node {node_idx}{label_part} -> "
+                f"{'Enabled' if enabled else 'Disabled'}"
+            )
+            changed = True
+        else:
+            result["nodes_set_failed"] += 1
+            log(
+                f"  [FAIL] {location} '{clip_name}': node {node_idx}{label_part} "
+                "SetNodeEnabled returned False."
+            )
+
+        maybe_pump()
+
+    return changed
+
+
+def _process_color_group_graphs(
+    item,
+    location_base,
+    clip_name,
+    enabled,
+    index_set,
+    label_pattern,
+    label_regex,
+    index_spec,
+    dry_run,
+    log,
+    maybe_pump,
+    result,
+    processed_group_graphs,
+    should_cancel,
+):
+    """Visit shared pre/post graphs once per color group per run."""
+    if should_cancel():
+        result["cancelled"] = True
+        return False
+
+    color_group = None
+    try:
+        color_group = item.GetColorGroup()
+    except Exception as exc:
+        log(f"  [warn] {location_base}: GetColorGroup raised: {exc}")
+        return False
+
+    if color_group is None:
+        return False
+
+    group_name = _color_group_name(color_group)
+    changed = False
+
+    for graph_kind, method_name in (
+        ("pre-clip", "GetPreClipNodeGraph"),
+        ("post-clip", "GetPostClipNodeGraph"),
+    ):
+        if should_cancel():
+            result["cancelled"] = True
+            return changed
+
+        dedupe_key = (group_name, graph_kind)
+        if dedupe_key in processed_group_graphs:
+            result["color_group_graphs_deduped"] += 1
+            continue
+
+        get_graph = getattr(color_group, method_name, None)
+        if not callable(get_graph):
+            continue
+        try:
+            graph = get_graph()
+        except Exception as exc:
+            log(
+                f"  [warn] Color group '{group_name}' {method_name} raised: {exc}"
+            )
+            continue
+        if graph is None:
+            continue
+
+        processed_group_graphs.add(dedupe_key)
+        result["layers_visited"] += 1
+        location = f"{location_base} Color group '{group_name}' {graph_kind}"
+        if _process_graph_targets(
+            graph,
+            location,
+            clip_name,
+            enabled,
+            index_set,
+            label_pattern,
+            label_regex,
+            index_spec,
+            dry_run,
+            log,
+            maybe_pump,
+            result,
+        ):
+            changed = True
+
+    return changed
+
+
 def bulk_set_node_enabled(
     conn,
     enabled,
@@ -51,6 +224,7 @@ def bulk_set_node_enabled(
     use_inout,
     track_filter_spec,
     clip_color_filter="",
+    include_color_group=False,
     dry_run=False,
     log=print,
     pump=_noop,
@@ -68,6 +242,7 @@ def bulk_set_node_enabled(
         "nodes_set_failed": 0,
         "versions_visited": 0,
         "layers_visited": 0,
+        "color_group_graphs_deduped": 0,
         "error": False,
         "cancelled": False,
     }
@@ -179,6 +354,10 @@ def bulk_set_node_enabled(
         log(f"  Tracks: V{sorted(track_set)} (filtered)")
     else:
         log(f"  Tracks: all {video_track_count} video track(s)")
+    if include_color_group:
+        log("  Color group: include pre-clip and post-clip node graphs (once per group)")
+    else:
+        log("  Color group: clip node graphs only")
     pump()
 
     # SetNodeEnabled needs the Color page active to actually take effect.
@@ -205,6 +384,7 @@ def bulk_set_node_enabled(
         if track_set is not None
         else list(range(1, video_track_count + 1))
     )
+    processed_group_graphs = set()
 
     for track_idx in track_indices:
         if should_cancel():
@@ -321,67 +501,43 @@ def bulk_set_node_enabled(
                     result["layers_visited"] += 1
 
                     location = f"{location_base}{version_label} L{layer_idx}"
-                    targets, total_nodes = _target_indices_for_graph(
-                        graph, index_set, label_pattern, log, location
-                    )
-
-                    if total_nodes <= 0:
-                        log(f"  [SKIP] {location} '{name}': empty graph.")
-                        continue
-
-                    if not targets:
-                        if label_pattern is not None:
-                            log(
-                                f"  [SKIP] {location} '{name}': no node label matches /{label_regex}/ "
-                                f"(graph has {total_nodes} node(s))."
-                            )
-                        else:
-                            missing = sorted(i for i in index_set if i < 1 or i > total_nodes)
-                            result["nodes_skipped_short_graph"] += len(missing)
-                            log(
-                                f"  [SKIP] {location} '{name}': requested {sorted(index_set)} but graph has only {total_nodes} node(s)."
-                            )
-                        continue
-
-                    for node_idx in targets:
-                        try:
-                            node_label = graph.GetNodeLabel(node_idx) or ""
-                        except Exception:
-                            node_label = ""
-                        label_part = f" (label='{node_label}')" if node_label else ""
-
-                        if dry_run:
-                            result["nodes_changed"] += 1
-                            log(
-                                f"  [PLAN] {location} '{name}': node {node_idx}{label_part} -> "
-                                f"{'Enabled' if enabled else 'Disabled'}"
-                            )
-                            maybe_pump()
-                            continue
-
-                        try:
-                            ok = bool(graph.SetNodeEnabled(node_idx, enabled))
-                        except Exception as exc:
-                            ok = False
-                            log(f"  [FAIL] {location} '{name}': node {node_idx}{label_part} SetNodeEnabled raised: {exc}")
-
-                        if ok:
-                            result["nodes_changed"] += 1
-                            log(
-                                f"  [OK]   {location} '{name}': node {node_idx}{label_part} -> "
-                                f"{'Enabled' if enabled else 'Disabled'}"
-                            )
-                            processed_this_clip = True
-                        else:
-                            result["nodes_set_failed"] += 1
-                            log(
-                                f"  [FAIL] {location} '{name}': node {node_idx}{label_part} SetNodeEnabled returned False."
-                            )
-
-                        maybe_pump()
+                    if _process_graph_targets(
+                        graph,
+                        location,
+                        name,
+                        enabled,
+                        index_set,
+                        label_pattern,
+                        label_regex,
+                        index_spec,
+                        dry_run,
+                        log,
+                        maybe_pump,
+                        result,
+                    ):
+                        processed_this_clip = True
 
                 if result["cancelled"]:
                     break
+
+            if include_color_group:
+                if _process_color_group_graphs(
+                    item,
+                    location_base,
+                    name,
+                    enabled,
+                    index_set,
+                    label_pattern,
+                    label_regex,
+                    index_spec,
+                    dry_run,
+                    log,
+                    maybe_pump,
+                    result,
+                    processed_group_graphs,
+                    should_cancel,
+                ):
+                    processed_this_clip = True
 
             if saved_version and saved_version.get("versionName") and not dry_run:
                 try:
@@ -423,6 +579,11 @@ def bulk_set_node_enabled(
         log(f"  Color-filtered TLIs skipped:    {result['tli_skipped_clip_color']}")
     log(f"  Timeline clips processed:       {result['tli_processed']}")
     log(f"  Layers visited:                 {result['layers_visited']}")
+    if result["color_group_graphs_deduped"]:
+        log(
+            f"  Color group graphs deduped:     {result['color_group_graphs_deduped']} "
+            "(shared group already processed for another clip)"
+        )
     if all_versions:
         log(f"  Versions visited:               {result['versions_visited']}")
     change_label = "Nodes that would be changed:" if dry_run else "Nodes changed:                 "

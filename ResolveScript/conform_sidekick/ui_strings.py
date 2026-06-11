@@ -48,6 +48,11 @@ PLACEHOLDER_NODE_LABEL_PATTERN = "Optional regex — e.g. denoise"
 LABEL_CLIP_NAME_FILTER = "Clip name filter (supports regex):"
 PLACEHOLDER_CLIP_NAME_FILTER = "Optional regex — part of the clip name to match"
 
+LABEL_GRADE_BYPASS_IGNORE = "Also leave nodes alone (regex):"
+PLACEHOLDER_GRADE_BYPASS_IGNORE = (
+    "Optional — nodes to skip (e.g. already off); use ^ and $ for exact labels"
+)
+
 
 def scope_area_label(scope: str) -> str:
     """Human label for status messages ('project' or 'timeline' scope key)."""
