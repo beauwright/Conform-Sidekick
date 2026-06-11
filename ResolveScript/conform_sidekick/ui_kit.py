@@ -488,6 +488,37 @@ def _walk_tree_items(tree):
                 yield child
 
 
+def _parent_tree_item(tree, item):
+    if tree is None or item is None:
+        return None
+    for method_name in ("Parent", "GetParent"):
+        method = getattr(item, method_name, None)
+        if callable(method):
+            try:
+                parent = method()
+                if parent is not None:
+                    return parent
+            except Exception:
+                continue
+    return None
+
+
+def _expand_tree_item(item):
+    if item is None:
+        return
+    for method_name in ("SetExpanded", "Expand"):
+        method = getattr(item, method_name, None)
+        if callable(method):
+            try:
+                if method_name == "SetExpanded":
+                    method(True)
+                else:
+                    method()
+                return
+            except Exception:
+                continue
+
+
 def select_nav_tree_for_feature(tree, feature_id, key_by_label=None):
     """Highlight the sidebar row for ``feature_id``. Returns True if found."""
     if tree is None or not feature_id:
@@ -495,27 +526,52 @@ def select_nav_tree_for_feature(tree, feature_id, key_by_label=None):
     for item in _walk_tree_items(tree):
         if nav_tree_key(item, key_by_label) != feature_id:
             continue
-        for target, method_name in (
-            (tree, "SetCurrentItem"),
-            (item, "SetSelected"),
-            (tree, "SetSelected"),
-        ):
-            method = getattr(target, method_name, None)
-            if not callable(method):
-                continue
+        parent = _parent_tree_item(tree, item)
+        if parent is not None:
+            _expand_tree_item(parent)
+
+        clear = getattr(tree, "ClearSelection", None)
+        if callable(clear):
             try:
-                if method_name == "SetSelected":
-                    method(True)
-                else:
-                    method(item)
-                return True
+                clear()
+            except Exception:
+                pass
+
+        set_current = getattr(tree, "SetCurrentItem", None)
+        if callable(set_current):
+            try:
+                set_current(item)
+            except Exception:
+                pass
+
+        set_selected = getattr(item, "SetSelected", None)
+        if callable(set_selected):
+            try:
+                set_selected(True)
             except Exception:
                 try:
-                    if method_name == "SetSelected":
-                        method(0, True)
-                    else:
-                        method(item)
-                    return True
+                    set_selected(0, True)
                 except Exception:
-                    continue
+                    pass
+        return True
     return False
+
+
+def clear_nav_tree_selection(tree):
+    """Clear sidebar highlight when no mode is active."""
+    if tree is None:
+        return
+    for method_name in ("ClearSelection", "ClearCurrentItem"):
+        method = getattr(tree, method_name, None)
+        if callable(method):
+            try:
+                method()
+                return
+            except Exception:
+                continue
+    method = getattr(tree, "SetCurrentItem", None)
+    if callable(method):
+        try:
+            method(None)
+        except Exception:
+            pass

@@ -1,7 +1,7 @@
 """Feature registry.
 
-Categories drive the two-level nav (category strip + mode row). The first
-feature in the first category is the default panel on launch.
+Categories drive the two-level nav (category strip + mode row). On first
+launch (no saved mode), the main area stays empty until the user picks a mode.
 """
 
 from .interlaced import InterlacedFeature

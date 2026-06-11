@@ -79,11 +79,23 @@ class StateStore:
             self.save(state)
         return state
 
-    def save(self, state: dict) -> None:
+    def save(self, updates: dict) -> None:
+        merged = dict(self.defaults)
+        read_path = self._read_path()
+        try:
+            with open(read_path, "r", encoding="utf-8") as fh:
+                loaded = json.load(fh)
+            if isinstance(loaded, dict):
+                for key in self.defaults:
+                    if key in loaded:
+                        merged[key] = loaded[key]
+        except (OSError, ValueError):
+            pass
+        merged.update(updates)
         try:
             os.makedirs(os.path.dirname(self.path), exist_ok=True)
             with open(self.path, "w", encoding="utf-8") as fh:
-                json.dump(state, fh, indent=2)
+                json.dump(merged, fh, indent=2)
         except OSError as exc:  # best-effort; never fatal
             print(f"Conform Sidekick: could not save state to {self.path}: {exc}")
 
