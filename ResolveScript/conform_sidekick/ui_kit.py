@@ -17,10 +17,20 @@ BTN_HEIGHT = 26
 BTN_ROW_HEIGHT = 32
 BTN_STYLE = "font-size: 12px;"
 
+# UIManager clips the last row when it sits flush on the parent bottom edge (the
+# layout ``Margin`` property makes this worse; ``app._pad`` uses VGap instead).
+# A trailing fixed VGap below bottom action rows avoids cut-off button chrome.
+BOTTOM_LAYOUT_PAD = 6
+
 
 def button_row_props():
     """HGroup props for a row that contains action buttons."""
     return {"Spacing": 8, "Weight": 0, "MinimumSize": [0, BTN_ROW_HEIGHT]}
+
+
+def bottom_layout_pad(ui):
+    """Reserve space below the last action row so buttons are not clipped."""
+    return ui.VGap(BOTTOM_LAYOUT_PAD, 0.0)
 
 
 def action_button(ui, props):

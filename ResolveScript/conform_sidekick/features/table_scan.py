@@ -101,6 +101,7 @@ class TableScanFeature(Feature):
                         ui.HGap(0, 1.0),
                     ],
                 ),
+                ui_kit.bottom_layout_pad(ui),
             ],
         )
 

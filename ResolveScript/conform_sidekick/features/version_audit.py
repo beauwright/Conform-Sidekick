@@ -347,54 +347,74 @@ class VersionAuditFeature(Feature):
                         ui.HGap(0, 1.0),
                     ],
                 ),
-                ui.Label(
-                    {
-                        "ID": self.wid("Status"),
-                        "Text": us.VERSION_AUDIT_STATUS_IDLE,
-                        "Weight": 0,
-                        "StyleSheet": "font-weight: bold;",
-                    }
-                ),
-                ui.Tree(
-                    {"ID": self.wid("Tree"), "Weight": 1, "SortingEnabled": True}
-                ),
-                ui.HGroup(
-                    ui_kit.button_row_props(),
+                ui.VGroup(
+                    {"Spacing": 8, "Weight": 1},
                     [
-                        ui.Label({"Text": "Selected:", "Weight": 0}),
                         ui.Label(
                             {
-                                "ID": self.wid("SelTC"),
-                                "Text": "\u2014",
-                                "Weight": 1,
+                                "ID": self.wid("Status"),
+                                "Text": us.VERSION_AUDIT_STATUS_IDLE,
+                                "Weight": 0,
                                 "StyleSheet": "font-weight: bold;",
                             }
                         ),
-                        ui_kit.action_button(
-                            ui,
+                        ui.Tree(
                             {
-                                "ID": self.wid("GoTC"),
-                                "Text": "Jump to Clip",
-                                "Enabled": False,
-                            },
+                                "ID": self.wid("Tree"),
+                                "Weight": 1,
+                                "SortingEnabled": True,
+                            }
                         ),
-                        ui_kit.action_button(
-                            ui,
-                            {
-                                "ID": self.wid("CopyTC"),
-                                "Text": "Copy Timecode",
-                                "Enabled": False,
-                            },
+                        ui.HGroup(
+                            ui_kit.button_row_props(),
+                            [
+                                ui.Label(
+                                    {
+                                        "Text": "Selected:",
+                                        "Weight": 0,
+                                        "MinimumSize": [70, 0],
+                                    }
+                                ),
+                                ui.Label(
+                                    {
+                                        "ID": self.wid("SelTC"),
+                                        "Text": "\u2014",
+                                        "Weight": 0,
+                                        "MinimumSize": [130, 0],
+                                        "StyleSheet": "font-weight: bold;",
+                                    }
+                                ),
+                                ui_kit.action_button(
+                                    ui,
+                                    {
+                                        "ID": self.wid("GoTC"),
+                                        "Text": "Jump to Clip",
+                                        "Enabled": False,
+                                        "MinimumSize": [120, 0],
+                                    },
+                                ),
+                                ui_kit.action_button(
+                                    ui,
+                                    {
+                                        "ID": self.wid("CopyTC"),
+                                        "Text": "Copy Timecode",
+                                        "Enabled": False,
+                                        "MinimumSize": [120, 0],
+                                    },
+                                ),
+                                ui_kit.action_button(
+                                    ui,
+                                    {
+                                        "ID": self.wid("CopyVfxKey"),
+                                        "Text": "Copy VFX Key",
+                                        "Enabled": False,
+                                        "MinimumSize": [110, 0],
+                                    },
+                                ),
+                                ui.HGap(0, 1.0),
+                            ],
                         ),
-                        ui_kit.action_button(
-                            ui,
-                            {
-                                "ID": self.wid("CopyVfxKey"),
-                                "Text": "Copy VFX Key",
-                                "Enabled": False,
-                            },
-                        ),
-                        ui.HGap(0, 1.0),
+                        ui_kit.bottom_layout_pad(ui),
                     ],
                 ),
             ],

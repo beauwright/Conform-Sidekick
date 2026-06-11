@@ -92,6 +92,7 @@ class LogFeature(Feature):
                 ],
             )
         )
+        rows.append(ui_kit.bottom_layout_pad(ui))
         return ui.VGroup({"Spacing": 8, "Weight": 1}, rows)
 
     def bind(self, ctx):

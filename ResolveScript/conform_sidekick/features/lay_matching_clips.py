@@ -107,20 +107,32 @@ class LayMatchingClipsFeature(TrackFilterLogFeature):
                  "Text": us.CHECK_TIMELINE_INOUT,
                  "Checked": False, "Weight": 0}
             ),
+            ui.CheckBox(
+                {
+                    "ID": self.wid("AddOffsetTrack"),
+                    "Text": "Add a comparison track",
+                    "Checked": False,
+                    "Weight": 0,
+                }
+            ),
             ui.HGroup(
-                {"Spacing": 8, "Weight": 0, "MinimumSize": [0, 30]},
+                {"Spacing": 6, "Weight": 0, "MinimumSize": [0, 28]},
                 [
-                    ui.CheckBox(
-                        {"ID": self.wid("AddOffsetTrack"),
-                         "Text": "Add a comparison track (offset source by:",
-                         "Checked": False, "Weight": 1}
-                    ),
+                    ui.HGap(22, 0.0),
+                    ui.Label({"Text": "Offset source by", "Weight": 0}),
                     ui.SpinBox(
-                        {"ID": self.wid("OffsetTrackFrames"), "Minimum": -240,
-                         "Maximum": 240, "Value": -1, "MinimumSize": [80, 0],
-                         "MaximumSize": [80, 16777215], "Weight": 0}
+                        {
+                            "ID": self.wid("OffsetTrackFrames"),
+                            "Minimum": -240,
+                            "Maximum": 240,
+                            "Value": -1,
+                            "MinimumSize": [72, 26],
+                            "MaximumSize": [72, 26],
+                            "Weight": 0,
+                        }
                     ),
-                    ui.Label({"Text": "frames)", "Weight": 0, "MinimumSize": [50, 0]}),
+                    ui.Label({"Text": "frames", "Weight": 0, "MinimumSize": [44, 0]}),
+                    ui.HGap(0, 1.0),
                 ],
             ),
             ui.CheckBox(
@@ -128,6 +140,22 @@ class LayMatchingClipsFeature(TrackFilterLogFeature):
                  "Checked": False, "Weight": 0}
             ),
         ]
+
+    def bind(self, ctx):
+        super().bind(ctx)
+        items = ctx.items
+        win = ctx.win
+        offset_spin = items[self.wid("OffsetTrackFrames")]
+
+        def sync_offset_enabled(_ev=None):
+            enabled = bool(items[self.wid("AddOffsetTrack")].Checked)
+            try:
+                offset_spin.Enabled = enabled
+            except Exception:
+                pass
+
+        win.On[self.wid("AddOffsetTrack")].Clicked = sync_offset_enabled
+        sync_offset_enabled()
 
     def apply_state(self, items, state):
         color_combo = items[self.wid("ClipColor")]
