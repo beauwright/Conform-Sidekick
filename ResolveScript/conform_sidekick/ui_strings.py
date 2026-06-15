@@ -55,7 +55,7 @@ PLACEHOLDER_GRADE_BYPASS_IGNORE = (
 
 VERSION_AUDIT_INTRO = (
     "Compare a VFX delivery file to the current timeline. "
-    "Flag missing deliveries, newer/older versions vs the sheet, and cover warnings."
+    "Flag missing deliveries, newer/older versions vs the sheet, disabled clips, and cover warnings."
 )
 LABEL_VFX_CSV = "VFX delivery file:"
 PLACEHOLDER_VFX_CSV = "Full path to CSV or .xlsx from VFX"

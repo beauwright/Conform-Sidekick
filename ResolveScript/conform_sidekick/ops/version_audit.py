@@ -171,6 +171,46 @@ def _best_timeline_version(entries, pick="max"):
     return max(entries, key=lambda item: item["version"])
 
 
+def _clip_enabled(item):
+    try:
+        return bool(item.GetClipEnabled())
+    except Exception:
+        return True
+
+
+def _build_match_warnings(inst, occluders=None):
+    """Combine optional cover occluders with disabled-clip notice."""
+    parts = []
+    if not inst.get("clip_enabled", True):
+        parts.append("Clip disabled on timeline")
+    if occluders:
+        parts.append("; ".join(occluders))
+    return "; ".join(parts)
+
+
+def _resolve_match_status(base, *, covered=False, disabled=False):
+    """Return a status id from a base match type plus covered/disabled flags."""
+    if base == "matched":
+        if covered and disabled:
+            return "matched_covered_disabled"
+        if covered:
+            return "matched_covered"
+        if disabled:
+            return "matched_disabled"
+        return "matched"
+    if base == "matched_normalized":
+        if covered and disabled:
+            return "matched_normalized_covered_disabled"
+        if covered:
+            return "matched_normalized_covered"
+        if disabled:
+            return "matched_normalized_disabled"
+        return "matched_normalized"
+    if disabled and base in ("newer_in_project", "older_in_project"):
+        return f"{base}_disabled"
+    return base
+
+
 def _result_from_timeline_instance(
     status,
     vfx_key,
@@ -507,6 +547,7 @@ def collect_timeline_index(
                 "comparison_key": comp_key,
                 "clip_name": clip_name,
                 "timecode": timecode,
+                "clip_enabled": _clip_enabled(item),
             }
             items_by_track[track_idx].append(record)
             if norm_key:
@@ -594,18 +635,18 @@ def _resolve_version_drift(
         return None
 
     version_note = format_version_note(sheet_version, project_version)
-    cover_warning = ""
+    occluders = []
     if warn_cover and status == "newer_in_project":
         occluders = find_occlusions(best, items_by_track, track_set)
-        if occluders:
-            cover_warning = "; ".join(occluders)
+    disabled = not best.get("clip_enabled", True)
+    status = _resolve_match_status(status, disabled=disabled)
 
     return _result_from_timeline_instance(
         status,
         raw_key,
         version_note,
         best,
-        cover_warning=cover_warning,
+        cover_warning=_build_match_warnings(best, occluders=occluders or None),
     )
 
 
@@ -702,6 +743,7 @@ def run_version_audit(
     normalized_count = 0
     unmatched_count = 0
     covered_count = 0
+    disabled_count = 0
     newer_count = 0
     older_count = 0
 
@@ -734,10 +776,12 @@ def run_version_audit(
                 )
             if drift_row is not None:
                 status = drift_row["status"]
-                if status == "newer_in_project":
+                if status.startswith("newer_in_project"):
                     newer_count += 1
-                elif status == "older_in_project":
+                elif status.startswith("older_in_project"):
                     older_count += 1
+                if status.endswith("_disabled"):
+                    disabled_count += 1
                 results.append(drift_row)
                 continue
 
@@ -763,23 +807,28 @@ def run_version_audit(
                 else []
             )
             covered = bool(occluders)
+            disabled = not inst.get("clip_enabled", True)
+            base = "matched_normalized" if match_mode == "normalized" else "matched"
+            status = _resolve_match_status(
+                base, covered=covered, disabled=disabled
+            )
             if match_mode == "normalized":
-                status = (
-                    "matched_normalized_covered" if covered else "matched_normalized"
-                )
                 normalized_count += 1
             else:
-                status = "matched_covered" if covered else "matched"
                 matched_count += 1
             if covered:
                 covered_count += 1
+            if disabled:
+                disabled_count += 1
             results.append(
                 _result_from_timeline_instance(
                     status,
                     raw_key,
                     "",
                     inst,
-                    cover_warning="; ".join(occluders) if occluders else "",
+                    cover_warning=_build_match_warnings(
+                        inst, occluders=occluders or None
+                    ),
                 )
             )
 
@@ -790,6 +839,7 @@ def run_version_audit(
         "normalized_count": normalized_count,
         "unmatched_count": unmatched_count,
         "covered_count": covered_count,
+        "disabled_count": disabled_count,
         "newer_count": newer_count,
         "older_count": older_count,
         "clips_scanned": index["clips_scanned"],

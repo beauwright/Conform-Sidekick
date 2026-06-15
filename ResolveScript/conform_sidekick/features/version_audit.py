@@ -34,18 +34,47 @@ SHOW_FILTERS = (
     ("normalized", "Matched (normalized) only"),
     ("newer", "Newer in project only"),
     ("older", "Older in project only"),
-    ("covered", "Covered warnings only"),
+    ("covered", "Warnings only"),
 )
 
 STATUS_LABELS = {
     "not_in_edit": "Not in edit",
     "matched": "Matched",
     "matched_covered": "Matched (covered)",
+    "matched_disabled": "Matched (disabled)",
+    "matched_covered_disabled": "Matched (covered, disabled)",
     "matched_normalized": "Matched (normalized)",
     "matched_normalized_covered": "Matched (normalized, covered)",
+    "matched_normalized_disabled": "Matched (normalized, disabled)",
+    "matched_normalized_covered_disabled": "Matched (normalized, covered, disabled)",
     "newer_in_project": "Newer in project",
+    "newer_in_project_disabled": "Newer in project (disabled)",
     "older_in_project": "Older in project",
+    "older_in_project_disabled": "Older in project (disabled)",
 }
+
+MATCHED_STATUSES = (
+    "matched",
+    "matched_covered",
+    "matched_disabled",
+    "matched_covered_disabled",
+)
+NORMALIZED_STATUSES = (
+    "matched_normalized",
+    "matched_normalized_covered",
+    "matched_normalized_disabled",
+    "matched_normalized_covered_disabled",
+)
+WARNING_STATUSES = (
+    "matched_covered",
+    "matched_disabled",
+    "matched_covered_disabled",
+    "matched_normalized_covered",
+    "matched_normalized_disabled",
+    "matched_normalized_covered_disabled",
+    "newer_in_project_disabled",
+    "older_in_project_disabled",
+)
 
 COLUMNS = [
     "Status",
@@ -54,9 +83,9 @@ COLUMNS = [
     "Track",
     "Timecode",
     "Clip Name",
-    "Cover Warning",
+    "Warnings",
 ]
-COLUMN_WIDTHS = [118, 150, 96, 48, 108, 130, 110]
+COLUMN_WIDTHS = [150, 150, 96, 48, 108, 130, 110]
 VFX_KEY_COLUMN = 1
 TC_COLUMN = 4
 
@@ -550,18 +579,15 @@ class VersionAuditFeature(Feature):
         if show_filter == "unmatched":
             return status == "not_in_edit"
         if show_filter == "matched":
-            return status in ("matched", "matched_covered")
+            return status in MATCHED_STATUSES
         if show_filter == "normalized":
-            return status in ("matched_normalized", "matched_normalized_covered")
+            return status in NORMALIZED_STATUSES
         if show_filter == "newer":
-            return status == "newer_in_project"
+            return status.startswith("newer_in_project")
         if show_filter == "older":
-            return status == "older_in_project"
+            return status.startswith("older_in_project")
         if show_filter == "covered":
-            return status in (
-                "matched_covered",
-                "matched_normalized_covered",
-            ) or bool(row.get("cover_warning"))
+            return status in WARNING_STATUSES or bool(row.get("cover_warning"))
         return True
 
     def _row_values(self, row):
@@ -874,6 +900,8 @@ class VersionAuditFeature(Feature):
                 parts.append(f"{summary['older_count']} older in project")
             if params["warn_cover"]:
                 parts.append(f"{summary['covered_count']} covered")
+            if summary.get("disabled_count"):
+                parts.append(f"{summary['disabled_count']} disabled")
             msg = (
                 f"Audited {', '.join(parts)} "
                 f"({summary['clips_scanned']} timeline clip(s) scanned). "
