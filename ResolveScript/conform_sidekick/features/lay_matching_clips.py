@@ -1,9 +1,11 @@
-"""Lay Matching Bin Clips On New Track.
+"""Lay Matching Bin Clips On New Track(s).
 
-Reconform helper: pair timeline clips with bin clips by regex and lay the bin
-clip on a new track at the original record position with source timecode
-preserved. Optional grade/attribute copy, clip color, originals-disable, and a
-comparison track. Port of
+Reconform helper: pair timeline clips with bin clips by regex and lay every
+matching bin clip on new tracks at the original record position with source
+timecode preserved. When a key matches multiple bin clips (e.g. split-screen
+LEFT/RIGHT plates) or record ranges overlap, placements spill onto additional
+tracks automatically. Optional grade/attribute copy, clip color, and
+originals-disable. Port of
 davinci-resolve-scripts/Edit/LayMatchingBinClipsOnNewTrack.py, with the
 timecode math moved onto the vendored ``timecode`` library.
 """
@@ -29,8 +31,6 @@ DEFAULTS = {
     "use_track_filter": False,
     "track_filter": "",
     "dry_run": False,
-    "add_offset_track": False,
-    "offset_track_frames": -1,
 }
 
 
@@ -61,7 +61,7 @@ class LayMatchingClipsFeature(TrackFilterLogFeature):
                               "MinimumSize": [130, 0]}),
                     ui.LineEdit(
                         {"ID": self.wid("TrackName"),
-                         "PlaceholderText": "Optional — name for the new video track"}
+                         "PlaceholderText": "Optional — base name for the new video track(s)"}
                     ),
                 ],
             ),
@@ -108,54 +108,10 @@ class LayMatchingClipsFeature(TrackFilterLogFeature):
                  "Checked": False, "Weight": 0}
             ),
             ui.CheckBox(
-                {
-                    "ID": self.wid("AddOffsetTrack"),
-                    "Text": "Add a comparison track",
-                    "Checked": False,
-                    "Weight": 0,
-                }
-            ),
-            ui.HGroup(
-                {"Spacing": 6, "Weight": 0, "MinimumSize": [0, 28]},
-                [
-                    ui.HGap(22, 0.0),
-                    ui.Label({"Text": "Offset source by", "Weight": 0}),
-                    ui.SpinBox(
-                        {
-                            "ID": self.wid("OffsetTrackFrames"),
-                            "Minimum": -240,
-                            "Maximum": 240,
-                            "Value": -1,
-                            "MinimumSize": [72, 26],
-                            "MaximumSize": [72, 26],
-                            "Weight": 0,
-                        }
-                    ),
-                    ui.Label({"Text": "frames", "Weight": 0, "MinimumSize": [44, 0]}),
-                    ui.HGap(0, 1.0),
-                ],
-            ),
-            ui.CheckBox(
                 {"ID": self.wid("DryRun"), "Text": us.CHECK_PREVIEW_ONLY,
                  "Checked": False, "Weight": 0}
             ),
         ]
-
-    def bind(self, ctx):
-        super().bind(ctx)
-        items = ctx.items
-        win = ctx.win
-        offset_spin = items[self.wid("OffsetTrackFrames")]
-
-        def sync_offset_enabled(_ev=None):
-            enabled = bool(items[self.wid("AddOffsetTrack")].Checked)
-            try:
-                offset_spin.Enabled = enabled
-            except Exception:
-                pass
-
-        win.On[self.wid("AddOffsetTrack")].Clicked = sync_offset_enabled
-        sync_offset_enabled()
 
     def apply_state(self, items, state):
         color_combo = items[self.wid("ClipColor")]
@@ -173,19 +129,10 @@ class LayMatchingClipsFeature(TrackFilterLogFeature):
         track_filter_ui.apply_track_filter_state(items, self, state)
         items[self.wid("UseInOut")].Checked = bool(state.get("use_inout", False))
         items[self.wid("DryRun")].Checked = bool(state["dry_run"])
-        items[self.wid("AddOffsetTrack")].Checked = bool(state.get("add_offset_track", False))
-        try:
-            items[self.wid("OffsetTrackFrames")].Value = int(state.get("offset_track_frames", -1))
-        except (TypeError, ValueError):
-            items[self.wid("OffsetTrackFrames")].Value = -1
 
     def gather(self, items):
         color_idx = items[self.wid("ClipColor")].CurrentIndex
         clip_color = CLIP_COLORS[color_idx] if 0 <= color_idx < len(CLIP_COLORS) else ""
-        try:
-            offset_track_frames = int(items[self.wid("OffsetTrackFrames")].Value)
-        except (TypeError, ValueError):
-            offset_track_frames = -1
         track_spec, _use_tracks, track_state = track_filter_ui.gather_track_filter(
             items, self
         )
@@ -200,8 +147,6 @@ class LayMatchingClipsFeature(TrackFilterLogFeature):
             "use_inout": bool(items[self.wid("UseInOut")].Checked),
             "track_filter_spec": track_spec,
             "dry_run": bool(items[self.wid("DryRun")].Checked),
-            "add_offset_track": bool(items[self.wid("AddOffsetTrack")].Checked),
-            "offset_track_frames": offset_track_frames,
         }
         state = {
             "pattern": params["pattern_str"],
@@ -213,8 +158,6 @@ class LayMatchingClipsFeature(TrackFilterLogFeature):
             "skip_disabled_tlis": params["skip_disabled_tlis"],
             "use_inout": params["use_inout"],
             "dry_run": params["dry_run"],
-            "add_offset_track": params["add_offset_track"],
-            "offset_track_frames": offset_track_frames,
             **track_state,
         }
         return params, state

@@ -69,6 +69,25 @@ Rule of thumb: pure-Python dep → vendor it; compiled/image dep → pip into Re
 All timecode / fps conversions go through `timecode_utils` (the `timecode`
 library), not hand-rolled SMPTE math — especially for Lay Matching Bin Clips.
 
+### Lay Matching Bin Clips: source ranges come from the Edit Index
+
+Resolve's scripting API derives `GetSourceStartFrame()` / `GetSourceEndFrame()`
+by flooring an internal float position, so they intermittently report 1 frame
+low (an in-point of 24 stored internally as `23.99999...` comes back as 23).
+That caused laid clips to land 1 frame early on source TC or 1 frame short on
+the tail. Lay Matching Bin Clips therefore exports the timeline's **Edit
+Index** (`Timeline.Export(..., EXPORT_TEXT_CSV)`) once per run and takes each
+event's `Source In` / `Source Out` / `Source Start` timecodes from it — those
+strings are rounded correctly by Resolve's display layer. The scripting API
+ints are only used as a fallback when an event has no usable Edit Index row.
+
+When a pairing key matches several bin clips (split screens shipping
+`.._LEFT` / `.._RIGHT` plates, `.._REF` / `.._SCREEN` elements), each timeline
+item pairs with the bin clips whose name matches it exactly (ignoring
+extension) when such clips exist, otherwise with all of the key's clips.
+Placements that would overlap on the new track spill onto additional tracks
+(`Reconform`, `Reconform 2`, ...) automatically.
+
 ## Status
 
 - ✅ All six tools implemented and verified on Resolve Studio.
