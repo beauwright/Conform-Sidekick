@@ -28,6 +28,25 @@ def button_row_props():
     return {"Spacing": 8, "Weight": 0, "MinimumSize": [0, BTN_ROW_HEIGHT]}
 
 
+def note_block(ui, text, props=None):
+    """Static multi-line text rendered as one Label per line.
+
+    UIManager lays out a ``WordWrap`` Label at single-line height (Qt's
+    heightForWidth is ignored), clipping the wrapped text — so longer notes
+    must be pre-broken with explicit newlines instead.
+    """
+    spec = {"Spacing": 2, "Weight": 0}
+    if props:
+        spec.update(props)
+    return ui.VGroup(
+        spec,
+        [
+            ui.Label({"Text": line, "Weight": 0})
+            for line in str(text).split("\n")
+        ],
+    )
+
+
 def bottom_layout_pad(ui):
     """Reserve space below the last action row so buttons are not clipped."""
     return ui.VGap(BOTTOM_LAYOUT_PAD, 0.0)

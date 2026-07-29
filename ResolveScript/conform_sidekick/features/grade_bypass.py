@@ -1,8 +1,11 @@
 """Bypass / restore the color grade on the current clip in the Color page.
 
-Keeps the configured color input and output nodes enabled while disabling
-everything else on ``Timeline.GetCurrentVideoItem()``. Restore turns back on
-only the nodes that bypass disabled (stored in persisted state).
+Bypass copies the current grade to a temporary local color version and
+disables everything on that copy except the configured color input and output
+nodes; the working grade is never modified. Restore switches back to the
+original version and deletes the bypass version. Shared color group pre/post
+graphs can't be versioned, so those are toggled in place (see
+``ops.grade_bypass``).
 """
 
 import traceback
@@ -12,10 +15,11 @@ from ..state import StateStore
 from .. import ui_kit
 from .. import ui_strings as us
 from ..ops.grade_bypass import (
+    clip_on_bypass_version,
     current_clip_key,
     grade_bypass,
     normalize_snapshots_by_clip,
-    snapshot_has_graph_data,
+    snapshot_can_restore,
 )
 
 
@@ -46,7 +50,7 @@ def _clip_has_bypass(state, clip_key):
     if not clip_key:
         return False
     by_clip = normalize_snapshots_by_clip(state)
-    return snapshot_has_graph_data(by_clip.get(clip_key))
+    return snapshot_can_restore(by_clip.get(clip_key))
 
 
 class GradeBypassFeature(LogFeature):
@@ -59,6 +63,7 @@ class GradeBypassFeature(LogFeature):
 
     def form_rows(self, ui):
         return [
+            ui_kit.note_block(ui, us.GRADE_BYPASS_INTRO),
             _row(
                 ui,
                 "Color input node:",
@@ -133,6 +138,7 @@ class GradeBypassFeature(LogFeature):
                     "Weight": 0,
                 }
             ),
+            ui_kit.note_block(ui, us.GRADE_BYPASS_GROUP_NOTE),
             ui.CheckBox(
                 {
                     "ID": self.wid("DryRun"),
@@ -275,9 +281,12 @@ class GradeBypassFeature(LogFeature):
             return
         try:
             clip_key = current_clip_key(conn) if conn is not None else ""
-            items[self.wid("Restore")].Enabled = _clip_has_bypass(
-                store.load(), clip_key
-            )
+            enabled = _clip_has_bypass(store.load(), clip_key)
+            if not enabled and conn is not None:
+                # Orphaned bypass version (e.g. state lost): restore can still
+                # recover it, so keep the button available.
+                enabled = clip_on_bypass_version(conn)
+            items[self.wid("Restore")].Enabled = enabled
         except Exception:
             pass
 

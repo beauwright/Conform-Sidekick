@@ -24,6 +24,20 @@ TRACK_FILTER_NONE_SELECTED = (
 CHECK_INCLUDE_COLOR_GROUP = (
     "Include shared color group nodes (pre-clip & post-clip)"
 )
+# Longer notes are pre-broken into lines (see ui_kit.note_block): UIManager
+# clips WordWrap labels to a single line of height.
+GRADE_BYPASS_INTRO = (
+    "Bypass copies the current grade to a temporary local version ('Conform Sidekick Bypass')\n"
+    "and disables everything on that copy except the color input/output and leave-alone nodes.\n"
+    "Your working grade — including nodes you disabled by hand — is not touched.\n"
+    "Restore switches back to your original version and deletes the bypass version."
+)
+GRADE_BYPASS_GROUP_NOTE = (
+    "Note: group pre/post nodes are shared across the whole group and can't be captured\n"
+    "by the bypass version, so they are toggled off in place. Resolve's API can't read\n"
+    "whether a node was already off, so Restore may re-enable group nodes you had\n"
+    "disabled yourself — list those under the leave-alone regex."
+)
 STATUS_CHOOSE_SCOPE = "Choose where to search, then click Scan."
 STATUS_NO_PROJECT = "Open a project in Resolve first."
 

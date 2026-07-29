@@ -1,21 +1,33 @@
 """Bypass / restore the color grade on the current clip in the Color page.
 
-Disables every node except the configured color input and output endpoints, plus
-any nodes matching an optional leave-alone label regex, on
-``Timeline.GetCurrentVideoItem()``. Optionally includes the clip's shared
-Color Group pre-clip and post-clip node graphs (see ``TimelineItem.GetColorGroup``).
+Bypass creates a temporary local color version (``BYPASS_VERSION_NAME``) on
+``Timeline.GetCurrentVideoItem()``. ``TimelineItem.AddVersion`` copies the
+current grade into the new version and switches to it (verified empirically);
+every node on that copy is then disabled except the configured color input and
+output endpoints, plus any nodes matching an optional leave-alone label regex.
+Restore switches back to the original version (``LoadVersionByName``) and
+deletes the bypass version — the working grade, including nodes the user had
+disabled by hand, is never modified.
 
-Restore re-enables only the nodes recorded when bypass ran for that clip
-(stored in per-clip feature state). The Resolve API documents
-``Graph.SetNodeEnabled`` but not ``GetNodeEnabled``, and ``SetNodeEnabled`` always
-returns ``True`` even when the node is already off — so nodes that were disabled
-before bypass cannot be detected reliably and may be re-enabled on restore.
-Collapsed node groups inside a single graph are not exposed by the API either;
-only top-level nodes from ``Graph.GetNumNodes()`` are reachable.
+Color group pre-clip / post-clip graphs (``TimelineItem.GetColorGroup``) are
+shared across the group and are not captured by local versions, so those are
+still bypassed in place with ``Graph.SetNodeEnabled`` and restored from the
+node list recorded at bypass time. The API has no ``GetNodeEnabled`` and
+``SetNodeEnabled`` always returns ``True`` even when the node is already off,
+so group nodes disabled before bypass cannot be detected and may be re-enabled
+on restore. Collapsed node groups inside a single graph are not exposed by the
+API either; only top-level nodes from ``Graph.GetNumNodes()`` are reachable.
+
+Snapshots persisted by older builds (clip-graph node lists without an
+``original_version``) are still restored the legacy way, by re-enabling the
+recorded nodes.
 """
 
 from .. import timeline_filters as tf
 from .bulk_nodes import _target_indices_for_graph
+
+BYPASS_VERSION_NAME = "Conform Sidekick Bypass"
+_GROUP_GRAPH_KEYS = ("group_pre", "group_post")
 
 
 def _noop():
@@ -79,9 +91,13 @@ def normalize_snapshots_by_clip(raw):
     return by_clip
 
 
-def snapshot_has_graph_data(snapshot):
+def snapshot_can_restore(snapshot):
     """True when ``snapshot`` contains bypass data that restore can apply."""
-    return bool(_snapshot_graph_entries(snapshot or {}))
+    snapshot = snapshot or {}
+    if _snapshot_graph_entries(snapshot):
+        return True
+    original = snapshot.get("original_version") or {}
+    return bool((original.get("name") or "").strip())
 
 
 def _clip_label(item):
@@ -104,8 +120,8 @@ def _color_group_name(color_group):
         return "(unnamed group)"
 
 
-def _collect_graphs(item, layers, include_color_group, log):
-    """Return ``[(graph_key, location_label, graph), ...]`` to visit."""
+def _collect_clip_graphs(item, layers, log):
+    """Return ``[(graph_key, location_label, graph), ...]`` for the clip layers."""
     graphs = []
     for layer_idx in layers:
         location = f"L{layer_idx} clip"
@@ -118,10 +134,12 @@ def _collect_graphs(item, layers, include_color_group, log):
             log(f"  [SKIP] {location}: no graph.")
             continue
         graphs.append((f"L{layer_idx}:clip", location, graph))
+    return graphs
 
-    if not include_color_group:
-        return graphs
 
+def _collect_group_graphs(item, log):
+    """Return the clip's shared color group pre/post graphs, if any."""
+    graphs = []
     color_group = None
     try:
         color_group = item.GetColorGroup()
@@ -156,6 +174,135 @@ def _collect_graphs(item, layers, include_color_group, log):
             ("group_post", f"Color group '{group_name}' post-clip", post_graph)
         )
     return graphs
+
+
+def _collect_graphs(item, layers, include_color_group, log):
+    """Return ``[(graph_key, location_label, graph), ...]`` to visit."""
+    graphs = _collect_clip_graphs(item, layers, log)
+    if include_color_group:
+        graphs.extend(_collect_group_graphs(item, log))
+    return graphs
+
+
+def _current_version_info(item, log):
+    """Return ``TimelineItem.GetCurrentVersion()`` as a dict (may be empty)."""
+    try:
+        return item.GetCurrentVersion() or {}
+    except Exception as exc:
+        log(f"  [warn] GetCurrentVersion raised: {exc}")
+        return {}
+
+
+def _local_versions(item, log):
+    try:
+        return list(item.GetVersionNameList(0) or [])
+    except Exception as exc:
+        log(f"  [warn] GetVersionNameList raised: {exc}")
+        return []
+
+
+def _delete_bypass_version(item, log, reason=""):
+    """Delete the bypass version if present. True when absent or deleted."""
+    if BYPASS_VERSION_NAME not in _local_versions(item, log):
+        return True
+    try:
+        ok = bool(item.DeleteVersionByName(BYPASS_VERSION_NAME, 0))
+    except Exception as exc:
+        log(
+            f"  [warn] DeleteVersionByName('{BYPASS_VERSION_NAME}') raised: {exc}"
+        )
+        return False
+    if ok:
+        log(f"  Deleted bypass version '{BYPASS_VERSION_NAME}'{reason}.")
+    else:
+        log(
+            f"  [warn] Could not delete bypass version "
+            f"'{BYPASS_VERSION_NAME}'{reason}; remove it by hand if it lingers."
+        )
+    return ok
+
+
+def clip_on_bypass_version(conn):
+    """True when the current clip is parked on the bypass version."""
+    try:
+        timeline = conn.get_timeline()
+        item = timeline.GetCurrentVideoItem() if timeline is not None else None
+        if item is None:
+            return False
+        info = item.GetCurrentVersion() or {}
+        return info.get("versionName") == BYPASS_VERSION_NAME
+    except Exception:
+        return False
+
+
+def _restore_original_version(item, bypass_snapshot, has_stored_graphs, dry_run, log, result):
+    """Switch back to the pre-bypass version and delete the bypass version.
+
+    Returns True when the caller should continue with graph restore, False on
+    a fatal condition (already logged, ``result['error']`` set).
+    """
+    original = bypass_snapshot.get("original_version") or {}
+    original_name = (original.get("name") or "").strip()
+    original_type = int(original.get("type") or 0)
+
+    info = _current_version_info(item, log)
+    current_name = info.get("versionName") or ""
+
+    if not original_name:
+        if current_name != BYPASS_VERSION_NAME:
+            if has_stored_graphs:
+                # Legacy snapshot: nothing version-related to undo.
+                return True
+            log(
+                "Nothing to restore for this clip. Bypass it first "
+                "(or preview was used last time)."
+            )
+            result["error"] = True
+            return False
+        # On the bypass version with no stored original (state was lost):
+        # recover with the first other local version.
+        candidates = [
+            name for name in _local_versions(item, log)
+            if name != BYPASS_VERSION_NAME
+        ]
+        if not candidates:
+            log(
+                "  [FAIL] Clip is on the bypass version but no other local "
+                "version exists to switch back to."
+            )
+            result["error"] = True
+            return False
+        original_name = candidates[0]
+        original_type = 0
+        log(
+            "  No stored original version for this clip; recovering by "
+            f"switching to '{original_name}'."
+        )
+
+    if dry_run:
+        log(f"  [PLAN] Switch back to version '{original_name}'.")
+        log(f"  [PLAN] Delete bypass version '{BYPASS_VERSION_NAME}'.")
+        return True
+
+    if current_name != original_name:
+        try:
+            loaded = bool(item.LoadVersionByName(original_name, original_type))
+        except Exception as exc:
+            loaded = False
+            log(f"  [FAIL] LoadVersionByName('{original_name}') raised: {exc}")
+        if not loaded:
+            log(
+                f"  [FAIL] Could not switch back to version '{original_name}'; "
+                "leaving the clip as-is."
+            )
+            result["error"] = True
+            return False
+        log(f"  Switched back to version '{original_name}'.")
+    else:
+        log(f"  Already on version '{original_name}'.")
+
+    _delete_bypass_version(item, log)
+    return True
 
 
 def _snapshot_graph_entries(bypass_snapshot):
@@ -621,63 +768,26 @@ def grade_bypass(
 
     original_page, page_switched = _switch_to_color_page(resolve, log, dry_run)
 
-    stored_graphs = _snapshot_graph_entries(bypass_snapshot)
-    if restore and not stored_graphs:
-        log(
-            "Nothing to restore for this clip. Bypass it first "
-            "(or preview was used last time)."
-        )
-        result["error"] = True
-        result["clip_key"] = clip_key
-        _restore_page(resolve, original_page, page_switched, log)
-        return result
-
     result["clip_key"] = clip_key
+    stored_graphs = _snapshot_graph_entries(bypass_snapshot)
 
     if restore:
         stored_label = (bypass_snapshot.get("clip_label") or "").strip()
         if stored_label:
             log(f"  Restoring bypass stored for: {stored_label}")
-    else:
-        log(f"  Color input:  index='{input_index_spec}'  label=/{input_label_regex}/")
-        log(f"  Color output: index='{output_index_spec}'  label=/{output_label_regex}/")
-        if (ignore_label_regex or "").strip():
-            log(f"  Leave alone:  label=/{ignore_label_regex}/")
-        log(
-            "  Note: nodes already disabled before bypass cannot be detected "
-            "via the Resolve API; list them under leave-alone regex instead."
+
+        proceed = _restore_original_version(
+            item, bypass_snapshot, bool(stored_graphs), dry_run, log, result
         )
-
-    graphs_to_visit = _collect_graphs(
-        item, layers, include_color_group if not restore else True, log=log
-    )
-
-    if not restore:
-        _, ignore_err = tf.compile_regex(ignore_label_regex)
-        if ignore_err is not None:
-            log(f"Invalid leave-alone label regex: {ignore_err}")
-            result["error"] = True
+        if not proceed:
             _restore_page(resolve, original_page, page_switched, log)
             return result
 
-        endpoint_err = _validate_bypass_endpoints(
-            graphs_to_visit,
-            input_index_spec,
-            input_label_regex,
-            output_index_spec,
-            output_label_regex,
-            log,
-        )
-        if endpoint_err is not None:
-            log(endpoint_err)
-            result["error"] = True
-            _restore_page(resolve, original_page, page_switched, log)
-            return result
-
-    if restore:
+        # Collect graphs after the version switch so clip-graph handles (used
+        # by legacy snapshots) refer to the restored version.
         graph_lookup = {
             key: (location, graph)
-            for key, location, graph in graphs_to_visit
+            for key, location, graph in _collect_graphs(item, layers, True, log=log)
         }
         for graph_key, graph_data in stored_graphs.items():
             if should_cancel():
@@ -702,13 +812,125 @@ def grade_bypass(
             if result["cancelled"]:
                 break
     else:
-        new_snapshot = {
-            "clip_key": clip_key,
-            "clip_label": clip_name,
-            "include_color_group": bool(include_color_group),
-            "graphs": {},
-        }
-        for graph_key, location, graph in graphs_to_visit:
+        log(f"  Color input:  index='{input_index_spec}'  label=/{input_label_regex}/")
+        log(f"  Color output: index='{output_index_spec}'  label=/{output_label_regex}/")
+        if (ignore_label_regex or "").strip():
+            log(f"  Leave alone:  label=/{ignore_label_regex}/")
+
+        # Validate against the current version's graphs; the bypass version is
+        # a copy of them, so endpoint matches carry over.
+        graphs_current = _collect_graphs(item, layers, include_color_group, log=log)
+
+        _, ignore_err = tf.compile_regex(ignore_label_regex)
+        if ignore_err is not None:
+            log(f"Invalid leave-alone label regex: {ignore_err}")
+            result["error"] = True
+            _restore_page(resolve, original_page, page_switched, log)
+            return result
+
+        endpoint_err = _validate_bypass_endpoints(
+            graphs_current,
+            input_index_spec,
+            input_label_regex,
+            output_index_spec,
+            output_label_regex,
+            log,
+        )
+        if endpoint_err is not None:
+            log(endpoint_err)
+            result["error"] = True
+            _restore_page(resolve, original_page, page_switched, log)
+            return result
+
+        if dry_run:
+            log(
+                f"  [PLAN] Create local version '{BYPASS_VERSION_NAME}' (a copy "
+                "of the current grade), switch to it, and disable the clip "
+                "nodes below on that copy only."
+            )
+            log(
+                "  [PLAN] Restore will switch back to the current version and "
+                "delete the bypass version."
+            )
+            graphs_to_bypass = graphs_current
+        else:
+            if should_cancel():
+                result["cancelled"] = True
+                _restore_page(resolve, original_page, page_switched, log)
+                return result
+
+            info = _current_version_info(item, log)
+            original_name = (info.get("versionName") or "").strip()
+            original_type = int(info.get("versionType") or 0)
+            if original_name == BYPASS_VERSION_NAME:
+                log(
+                    f"  This clip is already on '{BYPASS_VERSION_NAME}'. "
+                    "Use Restore grade instead."
+                )
+                result["error"] = True
+                _restore_page(resolve, original_page, page_switched, log)
+                return result
+            if not original_name:
+                log("  [FAIL] Could not read the clip's current version; not bypassing.")
+                result["error"] = True
+                _restore_page(resolve, original_page, page_switched, log)
+                return result
+
+            _delete_bypass_version(item, log, reason=" left over from an earlier run")
+
+            try:
+                added = bool(item.AddVersion(BYPASS_VERSION_NAME, 0))
+            except Exception as exc:
+                added = False
+                log(f"  [FAIL] AddVersion raised: {exc}")
+            if not added:
+                log(
+                    f"  [FAIL] Could not create bypass version "
+                    f"'{BYPASS_VERSION_NAME}'."
+                )
+                result["error"] = True
+                _restore_page(resolve, original_page, page_switched, log)
+                return result
+            log(
+                f"  Created bypass version '{BYPASS_VERSION_NAME}' as a copy "
+                f"of '{original_name}' and switched to it."
+            )
+
+            after = _current_version_info(item, log)
+            if (after.get("versionName") or "") != BYPASS_VERSION_NAME:
+                try:
+                    loaded = bool(item.LoadVersionByName(BYPASS_VERSION_NAME, 0))
+                except Exception as exc:
+                    loaded = False
+                    log(f"  [FAIL] LoadVersionByName raised: {exc}")
+                if not loaded:
+                    log("  [FAIL] Could not switch to the bypass version; undoing.")
+                    _delete_bypass_version(item, log)
+                    result["error"] = True
+                    _restore_page(resolve, original_page, page_switched, log)
+                    return result
+
+            new_snapshot = {
+                "clip_key": clip_key,
+                "clip_label": clip_name,
+                "include_color_group": bool(include_color_group),
+                "original_version": {"name": original_name, "type": original_type},
+                "graphs": {},
+            }
+            # Recorded immediately so restore works even if the run is
+            # cancelled mid-way through the node loop below.
+            result["snapshot"] = new_snapshot
+
+            # Clip graph handles must be re-fetched on the bypass version.
+            graphs_to_bypass = _collect_clip_graphs(item, layers, log)
+            if include_color_group:
+                log(
+                    "  Group pre/post graphs are shared (not versioned); "
+                    "toggling those nodes off in place."
+                )
+                graphs_to_bypass.extend(_collect_group_graphs(item, log))
+
+        for graph_key, location, graph in graphs_to_bypass:
             if should_cancel():
                 result["cancelled"] = True
                 break
@@ -727,13 +949,10 @@ def grade_bypass(
                 result,
                 should_cancel,
             )
-            if graph_data and not dry_run:
-                new_snapshot["graphs"][graph_key] = graph_data
+            if graph_data and not dry_run and graph_key in _GROUP_GRAPH_KEYS:
+                result["snapshot"]["graphs"][graph_key] = graph_data
             if result["cancelled"]:
                 break
-
-        if not dry_run and new_snapshot.get("graphs"):
-            result["snapshot"] = new_snapshot
 
     if result["cancelled"]:
         log("Run cancelled by user. Showing partial results below.")
@@ -748,8 +967,13 @@ def grade_bypass(
         log(f"  SetNodeEnabled failures: {result['nodes_set_failed']}")
     if dry_run:
         log("  (Dry run: no changes were applied.)")
-    elif restore and result["nodes_changed"] and not result["error"]:
-        log("  Bypass snapshot cleared for this clip after restore.")
+    elif restore and not result["error"]:
+        log("  Bypass data cleared for this clip after restore.")
+    elif not restore and not result["error"]:
+        log(
+            f"  Bypass is active on version '{BYPASS_VERSION_NAME}'; the "
+            "original grade is untouched. Use Restore grade to switch back."
+        )
     pump()
 
     return result
