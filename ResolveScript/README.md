@@ -48,6 +48,7 @@ Application Support/Conform Sidekick/   # outside Resolve's Scripts tree
       source_tc.py                      # invent source TC from Date Created
     _vendor/timecode/                   # vendored pure-Python dependency
     _vendor/tzdata/                     # vendored IANA tz database (Windows)
+  tests/                                # offline tests (no Resolve required)
   helpers/                              # optional legacy PyInstaller image helper
 ```
 
@@ -67,6 +68,15 @@ lives in `Utility/`. The package is installed under Application Support (see
    python.org interpreter (not your shell `PATH`). See `installer/`.
 
 Rule of thumb: pure-Python dep → vendor it; compiled/image dep → pip into Resolve's Python.
+
+### Tests
+
+Offline tests live in [`tests/`](tests/) — no Resolve, no network, no third-party
+packages, so they run under any interpreter including Resolve's own:
+
+```bash
+python3 ResolveScript/tests/run_tests.py
+```
 
 ### Timecode
 
