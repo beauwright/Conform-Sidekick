@@ -101,6 +101,41 @@ VERSION_AUDIT_NO_RESULTS = "Run an audit first, then export."
 VERSION_AUDIT_NO_EXPORT_PATH = "Enter a path for the export CSV."
 
 
+SOURCE_TC_INTRO = (
+    "Give clips with a source TC of 00:00:00:00 an invented one, built from the clip's\n"
+    "Date Created so each clip gets a unique, repeatable timecode instead of a wall of zeros.\n"
+    "Clips sharing a timestamp are nudged forward a frame at a time so no two ever match.\n"
+    "Preview first — this writes to the project, and Revert only knows about changes made\n"
+    "from this workstation."
+)
+SOURCE_TC_TIMELINE_NOTE = (
+    "Warning: changing a clip's source TC breaks any timeline clip already using it —\n"
+    "the timeline clip loses its media link and its source range until you press Revert.\n"
+    "Reverting was only ever verified within a single session, so never save the project\n"
+    "while clips are left changed if you enable this.\n"
+    "Every timeline in the project is checked, not just the open one — Resolve's own\n"
+    "clip Usage count only reflects the current timeline, so it is not relied on here.\n"
+    "That check adds a few seconds on projects with many timelines."
+)
+SOURCE_TC_ZONE_NOTE = (
+    "Resolve shows Date Created in this workstation's timezone, so the same media can read\n"
+    "differently on another machine. Pick a timezone to pin the result and keep it repeatable."
+)
+SOURCE_TC_SCOPE_BIN = "Current bin (and subfolders)"
+SOURCE_TC_ZONE_LOCAL = "Machine local (as Resolve displays it)"
+LABEL_SOURCE_TC_ZONE = "Timezone:"
+LABEL_SOURCE_TC_ZONE_OVERRIDE = "Or timezone name:"
+PLACEHOLDER_SOURCE_TC_ZONE = (
+    "Optional IANA name — e.g. America/Denver; overrides the dropdown when set"
+)
+CHECK_SOURCE_TC_INCLUDE_IMAGES = "Also include stills and image sequences"
+CHECK_SOURCE_TC_INCLUDE_AUDIO = "Also include audio clips"
+CHECK_SOURCE_TC_INCLUDE_IN_TIMELINE = (
+    "Also include clips used in any timeline in this project (see warning above)"
+)
+SOURCE_TC_NO_PROJECT = "Open a project in Resolve first."
+
+
 def scope_area_label(scope: str) -> str:
     """Human label for status messages ('project' or 'timeline' scope key)."""
     return "the current timeline" if scope == "timeline" else "this project"

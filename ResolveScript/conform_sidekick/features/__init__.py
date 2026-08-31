@@ -12,6 +12,7 @@ from .lay_matching_clips import LayMatchingClipsFeature
 from .bulk_node_enable import BulkNodeEnableFeature
 from .grade_bypass import GradeBypassFeature
 from .version_audit import VersionAuditFeature
+from .source_tc import SourceTcFeature
 
 # (category_id, label shown on the category button)
 CATEGORIES = (
@@ -27,6 +28,7 @@ def build_features():
         CompoundClipsFeature(),
         OddResPhotosFeature(),
         VersionAuditFeature(),
+        SourceTcFeature(),
         RenameFromMarkersFeature(),
         LayMatchingClipsFeature(),
         BulkNodeEnableFeature(),
