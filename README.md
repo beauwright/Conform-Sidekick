@@ -18,6 +18,8 @@
 
 - **Find Compound Clips Quickly**: Get the timecode of every compound clip in your project.
 
+- **Bypass Grade from a Stream Deck**: The Bypass Grade mode (Resolve-native edition) can be driven by a Stream Deck or any HTTP client without touching Resolve's keyboard shortcuts. Enable remote control in the panel and drag the generated launcher files onto a Stream Deck "System: Open" action.
+
 ## Compatibility and Use
 
 ### Compatibility

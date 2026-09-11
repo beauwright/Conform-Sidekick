@@ -18,6 +18,7 @@ if HERE not in sys.path:
 MODULES = (
     "test_source_tc_pure",
     "test_source_tc_ops",
+    "test_remote",
 )
 
 

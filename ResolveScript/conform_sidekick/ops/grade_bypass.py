@@ -74,6 +74,20 @@ def current_clip_key(conn):
     return _clip_key(item)
 
 
+def current_clip_label(conn):
+    """Return a display label for ``Timeline.GetCurrentVideoItem()``, or ``""``."""
+    timeline = conn.get_timeline()
+    if timeline is None:
+        return ""
+    try:
+        item = timeline.GetCurrentVideoItem()
+    except Exception:
+        return ""
+    if item is None:
+        return ""
+    return _clip_label(item)
+
+
 def normalize_snapshots_by_clip(raw):
     """Return ``{clip_key: snapshot}`` from persisted state, migrating legacy data."""
     if not isinstance(raw, dict):
@@ -769,6 +783,7 @@ def grade_bypass(
     original_page, page_switched = _switch_to_color_page(resolve, log, dry_run)
 
     result["clip_key"] = clip_key
+    result["clip_name"] = clip_name
     stored_graphs = _snapshot_graph_entries(bypass_snapshot)
 
     if restore:

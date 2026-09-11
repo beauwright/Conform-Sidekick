@@ -38,6 +38,17 @@ GRADE_BYPASS_GROUP_NOTE = (
     "whether a node was already off, so Restore may re-enable group nodes you had\n"
     "disabled yourself — list those under the leave-alone regex."
 )
+REMOTE_HEADER = "Stream Deck / remote control"
+CHECK_REMOTE_ENABLE = "Enable remote control (this computer only)"
+LABEL_REMOTE_PORT = "Port:"
+BTN_REMOTE_FOLDER = "Show launcher files"
+BTN_REMOTE_COPY_URL = "Copy toggle URL"
+REMOTE_STATUS_OFF = "Remote control is off."
+REMOTE_NOTE = (
+    "Drag a launcher (Bypass / Restore / Toggle Grade) onto a Stream Deck 'System: Open' action.\n"
+    "Anything that can open a file or send an HTTP request works too (Companion, Keyboard Maestro, curl).\n"
+    "Requests need the token baked into the launchers, so nothing else on the machine can trigger it."
+)
 STATUS_CHOOSE_SCOPE = "Choose where to search, then click Scan."
 STATUS_NO_PROJECT = "Open a project in Resolve first."
 

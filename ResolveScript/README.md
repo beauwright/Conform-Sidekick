@@ -31,6 +31,7 @@ Fusion/Scripts/Utility/                 # Resolve script menu (one entry only)
 Application Support/Conform Sidekick/   # outside Resolve's Scripts tree
   conform_sidekick/
     app.py                              # window + sidebar nav + dispatcher loop
+    remote.py                           # Stream Deck / HTTP remote control
     paths.py                            # support-dir resolution
     resolve_conn.py                     # resolve / fusion / ui / dispatcher
     resolve_api.py                      # media-pool / timeline queries
@@ -50,6 +51,7 @@ Application Support/Conform Sidekick/   # outside Resolve's Scripts tree
     _vendor/tzdata/                     # vendored IANA tz database (Windows)
   tests/                                # offline tests (no Resolve required)
   helpers/                              # optional legacy PyInstaller image helper
+  streamdeck/                           # generated remote-control launchers
 ```
 
 Resolve scans every `.py` under `Scripts/` recursively, so only the launcher
@@ -191,3 +193,36 @@ The `TauriApp/` and `PythonInterface/even_photos_resolve.py` sidecar remain on
 `main` for reference. The resolve-native branch does not use them; odd-res
 conversion is in `conform_sidekick.ops.odd_res` (Pillow in Resolve's Python).
 Legacy PyInstaller helper scripts under `PythonInterface/` remain for reference only.
+
+### Bypass Grade: Stream Deck / remote control
+
+Resolve cannot bind a keyboard shortcut to a script, and a Stream Deck "Hotkey"
+action just types into whichever app has focus — the very collision with
+Resolve's shortcuts we want to avoid. So `remote.py` gives the running window a
+loopback HTTP listener instead (`Color → Bypass Grade → Enable remote control`,
+default port 41451). Actions: `bypass`, `restore`, `toggle`, `status`. Every
+request needs the per-install token (`X-Sidekick-Token` header or `?token=`);
+without it any web page could fire an action through an `<img>` tag.
+
+On start the app writes ready-made launchers into `<support home>/streamdeck/`
+with the port and token baked in — `.app` applets on macOS (compiled with
+`osacompile`, they show a notification with the result), silent `.vbs` on
+Windows, plus `.command` / `.bat` / `.sh` fallbacks and a README. Drag one onto
+a Stream Deck "System: Open" action; Companion, Keyboard Maestro or curl can hit
+the URL directly.
+
+How it is driven, established by probing Resolve Studio 21 from the `fuscript`
+process the Scripts menu launches:
+
+- `UIDispatcher.RunLoop()` holds the GIL, so a background thread never runs
+  while the window idles. No threads are used anywhere in the remote.
+- `ui.Timer` exists and reports `IsActive`, but its `Timeout` event never reaches
+  Python, whether hooked via `win.On` or `disp.On`.
+- `UIDispatcher.StepLoop()` is non-blocking and returns in well under a
+  millisecond when idle. While the remote is on, `app._event_loop` swaps
+  `RunLoop` for a `StepLoop` + `remote.poll()` loop (~33 Hz, ~0.1 % CPU idle);
+  with the remote off the proven `RunLoop` path is untouched.
+- Requests are accepted with a zero-timeout `select` and answered on the UI
+  thread, so a Stream Deck press runs through exactly the same
+  `GradeBypassFeature.trigger` path as a button click and the reply carries the
+  outcome (or the last log line on failure).

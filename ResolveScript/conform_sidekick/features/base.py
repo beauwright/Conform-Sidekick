@@ -17,6 +17,10 @@ class AppContext:
         self.dispatcher = conn.dispatcher
         self.win = None
         self.items = None
+        # remote.RemoteServer shared by every feature (set by app.main).
+        self.remote = None
+        # Switch the window to a feature panel: ``ctx.select_feature(feature)``.
+        self.select_feature = None
         # Nav tree visible label -> feature id or @category (see ui_kit.populate_nav_tree).
         self.nav_tree_key_by_label = {}
 

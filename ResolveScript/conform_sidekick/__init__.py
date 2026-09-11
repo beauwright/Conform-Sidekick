@@ -19,4 +19,4 @@ if os.path.isdir(_VENDOR_DIR) and _VENDOR_DIR not in sys.path:
     sys.path.insert(0, _VENDOR_DIR)
 
 __all__ = ["__version__"]
-__version__ = "2.0.0-beta.8"
+__version__ = "2.0.0-beta.9"

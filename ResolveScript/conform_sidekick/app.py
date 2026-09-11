@@ -5,6 +5,9 @@ and their modes; the main area shows the active feature panel. Switching modes
 hides all panels except the selected one.
 """
 
+import time
+
+from . import remote as remote_mod
 from . import resolve_conn
 from . import ui_kit
 from .resolve_api import ResolveAPI
@@ -223,6 +226,37 @@ def _make_nav_controller(ctx, grouped, features_by_id, show_panel, app_store, na
     return select_feature, on_nav_item_clicked
 
 
+def _poll_until(conn, remote, stop):
+    """Manual event loop: StepLoop + remote poll until ``stop()`` is true."""
+    while not stop():
+        ui_kit.pump(conn.dispatcher)
+        remote.poll()
+        time.sleep(remote_mod.POLL_INTERVAL)
+
+
+def _event_loop(conn, remote, closed):
+    """Run the window's event loop until the window closes.
+
+    ``RunLoop`` is the proven path and stays the default. It blocks natively,
+    so nothing else can run while the window idles; when the remote listener
+    is on we need to poll it, and ``StepLoop`` (non-blocking, sub-millisecond
+    when idle - see ``remote``) is used instead. Starting the remote calls
+    ``ExitLoop`` (via ``remote.on_started``) so this loop can switch modes.
+    """
+    while not closed():
+        if remote.listening:
+            _poll_until(conn, remote, lambda: closed() or not remote.listening)
+            continue
+        started = time.monotonic()
+        conn.dispatcher.RunLoop()
+        if closed() or remote.listening:
+            continue
+        if time.monotonic() - started < 0.05:
+            # RunLoop bounced straight out (a stale ExitLoop from a start /
+            # stop before the loop began). Polling handles every case.
+            _poll_until(conn, remote, closed)
+
+
 def main(injected_globals=None):
     conn = resolve_conn.connect(injected_globals=injected_globals)
     api = ResolveAPI(conn)
@@ -231,6 +265,9 @@ def main(injected_globals=None):
     features_by_id = {f.id: f for f in features}
 
     ctx = AppContext(conn, api)
+    remote = remote_mod.RemoteServer()
+    remote.on_started = lambda: conn.dispatcher.ExitLoop()
+    ctx.remote = remote
 
     win = _build_window(conn.ui, conn.dispatcher, features)
     ctx.win = win
@@ -242,12 +279,6 @@ def main(injected_globals=None):
         nav_tree, grouped, SIDEBAR_WIDTH, ctx.nav_tree_key_by_label
     )
 
-    for feature in features:
-        try:
-            feature.bind(ctx)
-        except Exception as exc:
-            print(f"Conform Sidekick: bind failed for {feature.id}: {exc}")
-
     app_store = app_state_store()
     nav_state = {"bootstrapping": True}
     show_panel = _make_show_panel(ctx, features)
@@ -255,7 +286,27 @@ def main(injected_globals=None):
         ctx, grouped, features_by_id, show_panel, app_store, nav_state
     )
 
+    def select_feature_and_nav(feature):
+        select_feature(feature)
+        try:
+            ui_kit.select_nav_tree_for_feature(
+                nav_tree, feature.id, ctx.nav_tree_key_by_label
+            )
+        except Exception:
+            pass
+
+    ctx.select_feature = select_feature_and_nav
+
+    for feature in features:
+        try:
+            feature.bind(ctx)
+        except Exception as exc:
+            print(f"Conform Sidekick: bind failed for {feature.id}: {exc}")
+
+    closed = {"value": False}
+
     def on_close(ev):
+        closed["value"] = True
         conn.dispatcher.ExitLoop()
 
     win.On[WINDOW_ID].Close = on_close
@@ -283,5 +334,8 @@ def main(injected_globals=None):
     nav_state["bootstrapping"] = False
     win.On[NAV_TREE_ID].ItemClicked = on_nav_item_clicked
 
-    conn.dispatcher.RunLoop()
-    win.Hide()
+    try:
+        _event_loop(conn, remote, lambda: closed["value"])
+    finally:
+        remote.stop()
+        win.Hide()
