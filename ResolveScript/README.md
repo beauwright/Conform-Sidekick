@@ -211,6 +211,16 @@ Windows, plus `.command` / `.bat` / `.sh` fallbacks and a README. Drag one onto
 a Stream Deck "System: Open" action; Companion, Keyboard Maestro or curl can hit
 the URL directly.
 
+**Per-request layer overrides.** `bypass` and `toggle` accept `?layers=all`,
+`?layers=2`, `?layers=1,3` and so on. The override applies to that one run and
+is logged as such; the panel's "Node layer" field and saved state are never
+changed. Restore takes no layer parameter because it follows the snapshot of
+what bypass touched. The scripting API has no getter for the *selected* node
+stack layer (`CopyGrades` acts on it internally, but nothing reports it), so
+the launcher set carries one key per layer instead: "(All Layers)" plus
+"(Layer 1)" … "(Layer N)" for Bypass and Toggle, with N from the project's
+`nodeStackLayers` setting (minimum 2, capped at 8) when the remote starts.
+
 How it is driven, established by probing Resolve Studio 21 from the `fuscript`
 process the Scripts menu launches:
 

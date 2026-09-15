@@ -17,7 +17,7 @@ import urllib.request
 from _harness import Results
 
 from conform_sidekick import remote
-from conform_sidekick.features.grade_bypass import GradeBypassFeature
+from conform_sidekick.features.grade_bypass import GradeBypassFeature, overrides_from_query
 
 
 def _request(url, token=None, method="POST", header=True):
@@ -169,6 +169,35 @@ def run():
         "http://127.0.0.1:41451/toggle?token=t&plain=1",
     )
     r.check("endpoint_url bare", remote.endpoint_url(41451, "status"), "http://127.0.0.1:41451/status")
+    r.check(
+        "endpoint_url extra query is encoded and precedes plain",
+        remote.endpoint_url(41451, "toggle", token="t", plain=True, extra={"layers": "1,3"}),
+        "http://127.0.0.1:41451/toggle?token=t&layers=1%2C3&plain=1",
+    )
+    r.check("endpoint_url skips blank extras", remote.endpoint_url(41451, "toggle", extra={"layers": ""}), "http://127.0.0.1:41451/toggle")
+
+    # -- layer launcher specs ---------------------------------------------------
+    r.section("launcher_specs")
+    specs = remote.launcher_specs(3)
+    r.check("plain launchers first", [n for n, _, _ in specs[:3]], ["Bypass Grade", "Restore Grade", "Toggle Grade"])
+    r.check("plain launchers carry no override", [e for _, _, e in specs[:3]], [{}, {}, {}])
+    r.check(
+        "bypass + toggle get all/layer variants, restore does not",
+        [n for n, _, _ in specs[3:]],
+        [
+            "Bypass Grade (All Layers)", "Bypass Grade (Layer 1)", "Bypass Grade (Layer 2)", "Bypass Grade (Layer 3)",
+            "Toggle Grade (All Layers)", "Toggle Grade (Layer 1)", "Toggle Grade (Layer 2)", "Toggle Grade (Layer 3)",
+        ],
+    )
+    r.check("variant overrides", [e["layers"] for _, _, e in specs[3:7]], ["all", "1", "2", "3"])
+    r.check("1-layer project still offers 2 layer keys", len(remote.launcher_specs(1)), 3 + 2 * 3)
+    r.check("None max_layers -> minimum", len(remote.launcher_specs(None)), 3 + 2 * 3)
+    r.check("capped at MAX_LAYER_LAUNCHERS", len(remote.launcher_specs(99)), 3 + 2 * (remote.MAX_LAYER_LAUNCHERS + 1))
+    r.check("junk max_layers -> minimum", len(remote.launcher_specs("x")), 3 + 2 * 3)
+    layered = "\n".join(remote.launcher_sources(41451, "tok", max_layers=2).values())
+    r.check("layer launcher hits layers=all", "/toggle?layers=all&plain=1" in layered, True)
+    r.check("layer launcher hits layers=2", "/bypass?layers=2&plain=1" in layered, True)
+    r.check("README documents the layers override", "layers=all" in remote.launcher_sources(41451, "tok")["README.txt"], True)
 
     # -- launcher files --------------------------------------------------------
     r.section("launcher files")
@@ -241,6 +270,16 @@ def run():
         feature.trigger("bypass")["error"],
         "not_ready",
     )
+
+    r.section("overrides_from_query")
+    r.check("no query -> no overrides", overrides_from_query({}), {})
+    r.check("None -> no overrides", overrides_from_query(None), {})
+    r.check("layers=all", overrides_from_query({"layers": "all"}), {"layer_spec": "all"})
+    r.check("layers=2 stripped", overrides_from_query({"layers": " 2 "}), {"layer_spec": "2"})
+    r.check("layer (singular) accepted", overrides_from_query({"layer": "1,3"}), {"layer_spec": "1,3"})
+    r.check("blank layers ignored", overrides_from_query({"layers": "  "}), {})
+    r.check("unknown params ignored", overrides_from_query({"dry_run": "0", "plain": "1"}), {})
+    r.check("value length capped", len(overrides_from_query({"layers": "9" * 500})["layer_spec"]), 64)
 
     return r.summary()
 

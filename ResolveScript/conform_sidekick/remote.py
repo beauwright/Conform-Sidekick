@@ -34,7 +34,7 @@ import subprocess
 import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import TCPServer
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, quote, urlsplit
 
 from . import paths
 from .state import StateStore
@@ -66,6 +66,14 @@ LAUNCHER_ACTIONS = (
     ("restore", "Restore Grade"),
     ("toggle", "Toggle Grade"),
 )
+# Actions that get "(All Layers)" / "(Layer n)" variants. Restore follows the
+# bypass snapshot, so it never needs a layer choice.
+LAYER_VARIANT_ACTIONS = ("bypass", "toggle")
+# Always offer at least this many per-layer launchers, even on a 1-layer project.
+MIN_LAYER_LAUNCHERS = 2
+# Resolve's API has no "current node stack layer" getter, so the deck carries
+# one key per layer instead; cap the generated set at something sane.
+MAX_LAYER_LAUNCHERS = 8
 
 NOT_RUNNING_MESSAGE = (
     "Conform Sidekick is not running. Open it from Workspace > Scripts > Utility."
@@ -104,16 +112,42 @@ def launcher_dir():
     return os.path.join(paths.get_support_home(), LAUNCHER_FOLDER)
 
 
-def endpoint_url(port, action, token=None, plain=False):
+def endpoint_url(port, action, token=None, plain=False, extra=None):
+    """Build the action URL. ``extra`` adds per-request overrides (``layers``)."""
     url = f"http://127.0.0.1:{int(port)}/{action}"
     query = []
     if token:
         query.append(f"token={token}")
+    for key, value in sorted((extra or {}).items()):
+        if value is None or value == "":
+            continue
+        query.append(f"{quote(str(key), safe='')}={quote(str(value), safe='')}")
     if plain:
         query.append("plain=1")
     if query:
         url += "?" + "&".join(query)
     return url
+
+
+def launcher_specs(max_layers=None):
+    """Return ``[(display_name, action, extra_query), ...]`` for the launcher set.
+
+    The plain launchers use the panel's layer setting. The layer variants pass
+    ``layers=`` as a per-request override that never touches the panel.
+    """
+    specs = [(name, action, {}) for action, name in LAUNCHER_ACTIONS]
+    try:
+        layers = int(max_layers or 0)
+    except (TypeError, ValueError):
+        layers = 0
+    layers = max(MIN_LAYER_LAUNCHERS, min(layers, MAX_LAYER_LAUNCHERS))
+    names = dict(LAUNCHER_ACTIONS)
+    for action in LAYER_VARIANT_ACTIONS:
+        name = names[action]
+        specs.append((f"{name} (All Layers)", action, {"layers": "all"}))
+        for idx in range(1, layers + 1):
+            specs.append((f"{name} (Layer {idx})", action, {"layers": str(idx)}))
+    return specs
 
 
 def reveal_folder(path):
@@ -376,16 +410,14 @@ class RemoteServer:
 # ---------------------------------------------------------------------------
 
 
-def _curl_command(port, token, action, quote):
-    """Build the curl invocation with ``quote`` as the shell quote character."""
-    url = endpoint_url(port, action, plain=True)
+def _curl_command(port, token, action, q, extra=None):
+    """Build the curl invocation with ``q`` as the shell quote character."""
+    url = endpoint_url(port, action, plain=True, extra=extra)
     header = f"{TOKEN_HEADER}: {token}"
-    return (
-        f"curl -s -m 60 -X POST -H {quote}{header}{quote} {quote}{url}{quote}"
-    )
+    return f"curl -s -m 60 -X POST -H {q}{header}{q} {q}{url}{q}"
 
 
-def launcher_sources(port, token):
+def launcher_sources(port, token, max_layers=None):
     """Return ``{filename: text}`` for every launcher on this platform.
 
     Pure function so tests can check the generated content without touching
@@ -393,9 +425,10 @@ def launcher_sources(port, token):
     :func:`write_launchers`); their source is included here under ``.applescript``.
     """
     files = {}
+    specs = launcher_specs(max_layers)
     if sys.platform == "darwin":
-        for action, name in LAUNCHER_ACTIONS:
-            cmd = _curl_command(port, token, action, "'")
+        for name, action, extra in specs:
+            cmd = _curl_command(port, token, action, "'", extra)
             files[f"{name}.applescript"] = (
                 "try\n"
                 f'\tset msg to do shell script "{cmd}"\n'
@@ -408,8 +441,8 @@ def launcher_sources(port, token):
             )
             files[f"{name}.command"] = _shell_launcher(cmd)
     elif sys.platform.startswith("win"):
-        for action, name in LAUNCHER_ACTIONS:
-            cmd = _curl_command(port, token, action, '"').replace("curl ", "curl.exe ", 1)
+        for name, action, extra in specs:
+            cmd = _curl_command(port, token, action, '"', extra).replace("curl ", "curl.exe ", 1)
             vbs_cmd = cmd.replace('"', '""')
             files[f"{name}.vbs"] = (
                 'Set sh = CreateObject("WScript.Shell")\n'
@@ -418,8 +451,8 @@ def launcher_sources(port, token):
             )
             files[f"{name}.bat"] = "@echo off\r\n" + cmd + "\r\n"
     else:
-        for action, name in LAUNCHER_ACTIONS:
-            cmd = _curl_command(port, token, action, "'")
+        for name, action, extra in specs:
+            cmd = _curl_command(port, token, action, "'", extra)
             files[f"{name}.sh"] = _shell_launcher(cmd)
     files["README.txt"] = _readme_text(port, token)
     return files
@@ -458,12 +491,21 @@ def _readme_text(port, token):
         lines += ["    Bypass Grade.sh / Restore Grade.sh / Toggle Grade.sh"]
     lines += [
         "",
+        "Layers:",
+        "  The plain launchers use the 'Node layer' setting in the panel.",
+        "  '(All Layers)' and '(Layer n)' launchers override it for that press only;",
+        "  the panel setting is never changed. Resolve's API cannot report which",
+        "  layer is selected, so pick the key for the layer you are working on.",
+        "  Restore has no layer variants: it puts back whatever Bypass touched.",
+        "",
         "Any HTTP client (Stream Deck 'Web Requests' plugin, Bitfocus Companion,",
         "Keyboard Maestro, curl) can call the endpoint directly:",
         "",
         f"  POST {endpoint_url(port, 'toggle')}",
         f"  header  {TOKEN_HEADER}: {token}",
         f"  or      {endpoint_url(port, 'toggle', token=token)}",
+        f"  layers  {endpoint_url(port, 'toggle', token=token, extra={'layers': 'all'})}",
+        "          (layers=all, layers=2, layers=1,3 ...)",
         "",
         "Actions: bypass, restore, toggle, status. Add ?plain=1 for a one-line",
         "text reply instead of JSON. Requests are accepted from this computer only.",
@@ -478,7 +520,7 @@ def _stamp(text):
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def write_launchers(folder, port, token, compile_applets=True):
+def write_launchers(folder, port, token, compile_applets=True, max_layers=None):
     """Write launcher files into ``folder``. Returns ``(written, errors)``.
 
     macOS applets are compiled with ``osacompile`` only when their source
@@ -491,7 +533,8 @@ def write_launchers(folder, port, token, compile_applets=True):
     except OSError as exc:
         return written, [f"could not create {folder}: {exc}"]
 
-    for filename, text in launcher_sources(port, token).items():
+    sources = launcher_sources(port, token, max_layers)
+    for filename, text in sources.items():
         path = os.path.join(folder, filename)
         try:
             with open(path, "w", encoding="utf-8", newline="") as fh:
@@ -504,7 +547,7 @@ def write_launchers(folder, port, token, compile_applets=True):
             errors.append(f"{filename}: {exc}")
 
     if sys.platform == "darwin" and compile_applets:
-        for filename in list(launcher_sources(port, token)):
+        for filename in list(sources):
             if not filename.endswith(".applescript"):
                 continue
             src_path = os.path.join(folder, filename)

@@ -45,6 +45,24 @@ DEFAULTS = {
 BYPASS_LABEL = "Bypass grade"
 RESTORE_LABEL = "Restore grade"
 
+# Remote query parameters that may override panel settings for one request.
+# Only ``layers`` today; the panel field and saved state are never changed.
+OVERRIDE_MAX_LEN = 64
+
+
+def overrides_from_query(query):
+    """Return ``{param_name: value}`` overrides carried by a remote request.
+
+    ``layers`` maps onto ``layer_spec`` (``all``, ``2``, ``1,3-4`` ...); the
+    value is validated by the operation against the project's layer count.
+    """
+    query = query or {}
+    overrides = {}
+    layers = str(query.get("layers") or query.get("layer") or "").strip()
+    if layers:
+        overrides["layer_spec"] = layers[:OVERRIDE_MAX_LEN]
+    return overrides
+
 
 def _row(ui, label, widget):
     return ui.HGroup(
@@ -440,12 +458,14 @@ class GradeBypassFeature(LogFeature):
             pass
         return clip_on_bypass_version(ctx.conn)
 
-    def trigger(self, action):
+    def trigger(self, action, overrides=None):
         """Run ``bypass`` / ``restore`` / ``toggle`` exactly as a button click would.
 
-        Shared by the panel buttons and the remote control. Returns a dict for
-        the remote reply: ``ok``, ``did`` (bypass/restore), ``message``,
-        ``clip``.
+        Shared by the panel buttons and the remote control. ``overrides`` are
+        per-request parameter overrides (see :func:`overrides_from_query`);
+        they apply to bypass runs only, since restore follows the snapshot of
+        what bypass touched. Returns a dict for the remote reply: ``ok``,
+        ``did`` (bypass/restore), ``message``, ``clip``.
         """
         bound = getattr(self, "_bound", None)
         if bound is None:
@@ -487,6 +507,11 @@ class GradeBypassFeature(LogFeature):
         if store is not None and state is not None:
             store.save(state)
 
+        applied = {}
+        if overrides and not restore:
+            applied = {k: v for k, v in overrides.items() if k in params}
+            params.update(applied)
+
         last_line = {"text": ""}
 
         def log(line):
@@ -494,6 +519,8 @@ class GradeBypassFeature(LogFeature):
             log_ctl.log(line)
 
         log_ctl.reset()
+        for key, value in applied.items():
+            log(f"Remote override: {key} = {value!r} (panel setting unchanged)")
         self._run.begin()
         set_running(True, did)
         result = None
@@ -507,7 +534,10 @@ class GradeBypassFeature(LogFeature):
             self._run.end()
             set_running(False)
 
-        return self._describe_result(result or {}, did, params.get("dry_run"), last_line["text"])
+        reply = self._describe_result(result or {}, did, params.get("dry_run"), last_line["text"])
+        if applied:
+            reply["overrides"] = applied
+        return reply
 
     @staticmethod
     def _describe_result(result, did, dry_run, last_line):
@@ -545,9 +575,17 @@ class GradeBypassFeature(LogFeature):
         if remote is None:
             return
 
-        remote.register("bypass", lambda q: self.trigger("bypass"), "Bypass the grade on the current clip")
+        remote.register(
+            "bypass",
+            lambda q: self.trigger("bypass", overrides_from_query(q)),
+            "Bypass the grade on the current clip (?layers=all|n overrides the panel)",
+        )
         remote.register("restore", lambda q: self.trigger("restore"), "Restore the grade on the current clip")
-        remote.register("toggle", lambda q: self.trigger("toggle"), "Bypass if active, restore if bypassed")
+        remote.register(
+            "toggle",
+            lambda q: self.trigger("toggle", overrides_from_query(q)),
+            "Bypass if active, restore if bypassed (?layers=all|n overrides the panel)",
+        )
         remote.register("status", lambda q: self.remote_status(ctx), "Report whether the current clip is bypassed")
 
         remote_store = remote_mod.remote_state_store()
@@ -562,7 +600,10 @@ class GradeBypassFeature(LogFeature):
         def on_folder():
             folder = remote_mod.launcher_dir()
             if remote.listening:
-                remote_mod.write_launchers(folder, remote.port, remote.token)
+                remote_mod.write_launchers(
+                    folder, remote.port, remote.token,
+                    max_layers=self._project_max_layers(ctx),
+                )
             if not remote_mod.reveal_folder(folder):
                 self._set_remote_status(items, f"Launcher files: {folder}")
 
@@ -582,6 +623,17 @@ class GradeBypassFeature(LogFeature):
         win.On[self.wid("RemoteCopyUrl")].Clicked = lambda ev: on_copy_url()
 
         self._apply_remote_settings(ctx)
+
+    @staticmethod
+    def _project_max_layers(ctx):
+        """Node stack layer count of the open project (drives per-layer launchers)."""
+        try:
+            project = ctx.conn.get_project()
+            if project is not None:
+                return int(project.GetSetting("nodeStackLayers") or 1)
+        except Exception:
+            pass
+        return 1
 
     def _remote_port_from_ui(self, items):
         try:
@@ -637,7 +689,9 @@ class GradeBypassFeature(LogFeature):
             return
 
         folder = remote_mod.launcher_dir()
-        _written, errors = remote_mod.write_launchers(folder, actual, token)
+        _written, errors = remote_mod.write_launchers(
+            folder, actual, token, max_layers=self._project_max_layers(ctx)
+        )
         note = f" (port {port} was busy)" if actual != port else ""
         status = f"Listening on http://127.0.0.1:{actual}{note} - launcher files in {folder}"
         if errors:
