@@ -21,6 +21,7 @@ MODULES = (
     "test_remote",
     "test_state",
     "test_app_loop",
+    "test_grade_bypass_ops",
 )
 
 

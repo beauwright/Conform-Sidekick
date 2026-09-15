@@ -29,6 +29,7 @@ CHECK_INCLUDE_COLOR_GROUP = (
 GRADE_BYPASS_INTRO = (
     "Bypass copies the current grade to a temporary local version ('Conform Sidekick Bypass')\n"
     "and disables everything on that copy except the color input/output and leave-alone nodes.\n"
+    "Leave all four input/output fields blank to disable every node instead.\n"
     "Your working grade — including nodes you disabled by hand — is not touched.\n"
     "Restore switches back to your original version and deletes the bypass version."
 )

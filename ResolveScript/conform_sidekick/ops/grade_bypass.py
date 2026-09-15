@@ -396,6 +396,21 @@ def _resolve_endpoint(
     return set(targets), total, None
 
 
+def endpoints_blank(
+    input_index_spec, input_label_regex, output_index_spec, output_label_regex
+):
+    """True when no color input/output is specified at all (disable-everything mode)."""
+    return not any(
+        (spec or "").strip()
+        for spec in (
+            input_index_spec,
+            input_label_regex,
+            output_index_spec,
+            output_label_regex,
+        )
+    )
+
+
 def _validate_bypass_endpoints(
     graphs,
     input_index_spec,
@@ -404,7 +419,22 @@ def _validate_bypass_endpoints(
     output_label_regex,
     log,
 ):
-    """Ensure input/output are specified and match somewhere across all graphs."""
+    """Ensure input/output are specified and match somewhere across all graphs.
+
+    All four specs blank is the "disable everything" mode: every node on every
+    visited graph goes off (leave-alone nodes excepted) and no endpoint check
+    applies. Setting only one side is still refused, since that is almost
+    always a half-filled panel rather than intent.
+    """
+    if endpoints_blank(
+        input_index_spec, input_label_regex, output_index_spec, output_label_regex
+    ):
+        log(
+            "  No color input/output set: bypass will disable every node "
+            "(leave-alone nodes excepted)."
+        )
+        return None
+
     index_set, index_err = tf.parse_int_spec(input_index_spec, what="input index")
     if index_err is not None:
         return f"Color input index: {index_err}"
@@ -428,7 +458,7 @@ def _validate_bypass_endpoints(
     if not has_input or not has_output:
         return (
             "Specify both a color input and a color output (node number and/or "
-            "label regex for each)."
+            "label regex for each), or leave all four blank to disable every node."
         )
 
     input_hits = 0
@@ -645,6 +675,10 @@ def _bypass_graph(
             f"(of {total_nodes} total)."
             + (f" ({parts[1]})" if ignore_set else "")
         )
+    elif endpoints_blank(
+        input_index_spec, input_label_regex, output_index_spec, output_label_regex
+    ):
+        log(f"  {location}: no color input/output set; disabling all {total_nodes} node(s).")
     else:
         log(
             f"  {location}: input/output not on this graph; "
