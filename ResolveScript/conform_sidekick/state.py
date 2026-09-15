@@ -46,8 +46,22 @@ def _state_dir() -> str:
     return folder
 
 
+def _acceptable(default, value):
+    """False for a None where the default is a concrete value.
+
+    Widget proxies of a window that no longer exists (Resolve crashed under a
+    still-running script) read back as None; persisting that would blank the
+    user's settings. Such values are dropped on save and ignored on load, so a
+    file that was already damaged heals itself.
+    """
+    return value is not None or default is None
+
+
 class StateStore:
-    """Load/save a flat dict of UI values for one feature namespace."""
+    """Load/save a flat dict of UI values for one feature namespace.
+
+    None is never written over a non-None default (see :func:`_acceptable`).
+    """
 
     def __init__(self, namespace: str, defaults: dict):
         self.namespace = namespace
@@ -71,7 +85,7 @@ class StateStore:
                 loaded = json.load(fh)
             if isinstance(loaded, dict):
                 for key in self.defaults:
-                    if key in loaded:
+                    if key in loaded and _acceptable(self.defaults[key], loaded[key]):
                         state[key] = loaded[key]
         except (OSError, ValueError):
             return state
@@ -87,11 +101,13 @@ class StateStore:
                 loaded = json.load(fh)
             if isinstance(loaded, dict):
                 for key in self.defaults:
-                    if key in loaded:
+                    if key in loaded and _acceptable(self.defaults[key], loaded[key]):
                         merged[key] = loaded[key]
         except (OSError, ValueError):
             pass
-        merged.update(updates)
+        merged.update(
+            {k: v for k, v in updates.items() if _acceptable(self.defaults.get(k), v)}
+        )
         try:
             os.makedirs(os.path.dirname(self.path), exist_ok=True)
             with open(self.path, "w", encoding="utf-8") as fh:

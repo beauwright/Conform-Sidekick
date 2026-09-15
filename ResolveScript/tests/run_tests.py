@@ -19,6 +19,8 @@ MODULES = (
     "test_source_tc_pure",
     "test_source_tc_ops",
     "test_remote",
+    "test_state",
+    "test_app_loop",
 )
 
 

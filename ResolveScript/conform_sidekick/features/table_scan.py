@@ -9,8 +9,8 @@ selected-row timecode actions (Go to / Copy) - is shared.
 Project-wide scans on large projects are slow (the media-pool walk is the known
 bottleneck), so the scan keeps the UI responsive by pumping the event loop as it
 goes and can be aborted with the Cancel button. The scan runs inside the Scan
-click handler (i.e. while RunLoop is active), which is the only context where
-pumping is safe.
+click handler; pumping there re-enters the dispatcher, which is how the Cancel
+click gets delivered mid-scan.
 """
 
 from .base import Feature

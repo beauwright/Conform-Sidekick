@@ -11,9 +11,10 @@ process, where ``UIDispatcher.RunLoop()`` holds the GIL, so a background
 thread never gets scheduled while the window idles (verified by probe). The
 ``Timer`` UIManager element exists but its ``Timeout`` event never reaches
 Python either. What *does* work is ``StepLoop()``: it returns in well under a
-millisecond when idle, so while the remote is on the app swaps ``RunLoop`` for
-a small ``StepLoop`` + :meth:`RemoteServer.poll` loop (see ``app``), and every
-request is accepted and answered on the UI thread with a zero-timeout select.
+millisecond when idle, so the app drives the window with its own
+``StepLoop`` + :meth:`RemoteServer.poll` loop (see ``app.event_loop``), and
+every request is accepted and answered on the UI thread with a zero-timeout
+select.
 
 Security model: loopback only, and every action needs a random per-install
 token (header ``X-Sidekick-Token`` or ``?token=``). Without the token a web
@@ -45,8 +46,6 @@ PORT_MAX = 65535
 # When the configured port is taken, try the next few before giving up.
 PORT_SEARCH_SPAN = 10
 TOKEN_HEADER = "X-Sidekick-Token"
-# Seconds between StepLoop passes while the remote is on (~33 Hz).
-POLL_INTERVAL = 0.03
 # Requests handled per poll pass; keeps a burst from starving the UI.
 MAX_REQUESTS_PER_POLL = 4
 # A client that connects but never sends a request line stalls the UI thread

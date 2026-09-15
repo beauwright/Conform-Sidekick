@@ -3,6 +3,31 @@
 Split layout: a left sidebar ``Tree`` lists categories (Conform / Edit / Color)
 and their modes; the main area shows the active feature panel. Switching modes
 hides all panels except the selected one.
+
+Event loop
+----------
+The window is driven by one manual loop (:func:`event_loop`). Every tick
+"kicks" the dispatcher - sets the text of a hidden widget in a never-shown
+helper window and calls ``RunLoop()``, which drains every pending UI event and
+returns as soon as the kick's own ``TextChanged`` handler calls ``ExitLoop()`` -
+then serves the remote-control listener, and every couple of seconds checks
+that Resolve is still there. Findings behind that (probed against Resolve
+Studio 21; see ``tests/live_ui_events.py``):
+
+- ``StepLoop()`` is non-blocking but delivers one queued message per call, and
+  the full window generates a couple of hundred internal messages per fresh
+  event. Polling it alone left clicks undelivered for seconds: the
+  2.0.0-beta.9/10 "panel is dead while the Stream Deck works" bug. It is still
+  what :func:`ui_kit.pump` uses *inside* a handler, where it delivers promptly.
+- ``ExitLoop()`` is sticky: called before a ``RunLoop`` has run, it silences
+  later ``StepLoop()`` calls too. A ``RunLoop`` with a kick queued always
+  returns, stale flag or not. Nested ``RunLoop`` calls from inside a handler
+  hang, so only the tick ever calls it.
+- The UIManager window lives in Resolve's process. When Resolve crashes, this
+  ``fuscript`` process survives with a dead connection and dead widget proxies
+  (every ``.Text`` read returns None) but a live HTTP listener. The liveness
+  check exits the loop so no such zombie is left holding the remote port or
+  overwriting saved settings.
 """
 
 import time
@@ -226,38 +251,124 @@ def _make_nav_controller(ctx, grouped, features_by_id, show_panel, app_store, na
     return select_feature, on_nav_item_clicked
 
 
-def _poll_until(conn, remote, stop):
-    """Manual event loop: StepLoop + remote poll until ``stop()`` is true."""
-    while not stop():
-        ui_kit.pump(conn.dispatcher)
-        remote.poll()
-        time.sleep(remote_mod.POLL_INTERVAL)
+KICK_WINDOW_ID = "ConformSidekickKickWin"
+KICK_EDIT_ID = "ConformSidekickKick"
+
+# Seconds between loop ticks (one kick + RunLoop drain + one remote poll each);
+# ~33 Hz costs about 1.5 % CPU idle, and a click waits at most one tick.
+TICK_INTERVAL = 0.03
+# Seconds between "is Resolve still there?" checks.
+LIVENESS_INTERVAL = 2.0
+# Consecutive failed liveness checks before the window gives up and exits.
+LIVENESS_FAILURES_TO_EXIT = 2
 
 
-def _event_loop(conn, remote, closed):
-    """Run the window's event loop until the window closes.
+def resolve_alive(conn):
+    """True when the Resolve connection still answers.
 
-    ``RunLoop`` is the proven path and stays the default. It blocks natively,
-    so nothing else can run while the window idles; when the remote listener
-    is on we need to poll it, and ``StepLoop`` (non-blocking, sub-millisecond
-    when idle - see ``remote``) is used instead. Starting the remote calls
-    ``ExitLoop`` (via ``remote.on_started``) so this loop can switch modes.
+    A crashed / quit Resolve leaves the scripting proxies in place but every
+    call returns None (verified on a post-crash zombie), so a falsy version
+    string is the signal.
     """
+    try:
+        return bool(conn.resolve.GetVersionString())
+    except Exception:
+        return False
+
+
+def event_loop(step, poll, alive, closed, sleep=time.sleep, now=time.monotonic):
+    """Drive the window until ``closed()`` is true or Resolve goes away.
+
+    ``step`` drains pending UI events (returning False when the connection
+    failed), ``poll`` serves pending remote requests, ``alive`` reports whether
+    Resolve still answers. Returns ``"closed"`` or ``"resolve_gone"``. Pure
+    apart from the injected callables so the offline tests can drive it.
+    """
+    next_check = now() + LIVENESS_INTERVAL
+    failures = 0
     while not closed():
-        if remote.listening:
-            _poll_until(conn, remote, lambda: closed() or not remote.listening)
-            continue
-        started = time.monotonic()
-        conn.dispatcher.RunLoop()
-        if closed() or remote.listening:
-            continue
-        if time.monotonic() - started < 0.05:
-            # RunLoop bounced straight out (a stale ExitLoop from a start /
-            # stop before the loop began). Polling handles every case.
-            _poll_until(conn, remote, closed)
+        if step() is False:
+            print("Conform Sidekick: lost the Resolve connection - closing.")
+            return "resolve_gone"
+        poll()
+        if now() >= next_check:
+            next_check = now() + LIVENESS_INTERVAL
+            if alive():
+                failures = 0
+            else:
+                failures += 1
+                if failures >= LIVENESS_FAILURES_TO_EXIT:
+                    print("Conform Sidekick: Resolve is no longer reachable - closing.")
+                    return "resolve_gone"
+        sleep(TICK_INTERVAL)
+    return "closed"
 
 
-def main(injected_globals=None):
+class App:
+    """The built window plus everything the loop needs (see :func:`build`)."""
+
+    def __init__(self, conn, ctx, win, remote, features, kick_win, kick_edit):
+        self.conn = conn
+        self.ctx = ctx
+        self.win = win
+        self.remote = remote
+        self.features = features
+        self.kick_win = kick_win
+        self.kick_edit = kick_edit
+        self.closed = False
+        self._kicks = 0
+
+    def step(self):
+        """Drain every pending UI event. False when the connection is gone."""
+        self._kicks += 1
+        try:
+            # A changed value is required: Qt emits TextChanged only on change.
+            self.kick_edit.Text = str(self._kicks)
+        except Exception as exc:
+            print(f"Conform Sidekick: kick failed: {exc}")
+            return False
+        self.conn.dispatcher.RunLoop()
+        return True
+
+    def poll(self):
+        if self.remote.listening:
+            self.remote.poll()
+
+    def alive(self):
+        return resolve_alive(self.conn)
+
+    def run(self):
+        """Block until the window closes or Resolve disappears, then clean up."""
+        try:
+            return event_loop(self.step, self.poll, self.alive, lambda: self.closed)
+        finally:
+            self.shutdown()
+
+    def shutdown(self):
+        self.remote.stop()
+        for window in (self.win, self.kick_win):
+            try:
+                window.Hide()
+            except Exception:
+                pass
+
+
+def _build_kick_window(ui, dispatcher):
+    """Never-shown helper window whose hidden LineEdit drives the tick.
+
+    Returns ``(window, line_edit)``. The handler is bound here so ``RunLoop``
+    can never be entered without a way out.
+    """
+    win = dispatcher.AddWindow(
+        {"ID": KICK_WINDOW_ID, "WindowTitle": "Conform Sidekick", "Geometry": [0, 0, 10, 10]},
+        [ui.VGroup({}, [ui.LineEdit({"ID": KICK_EDIT_ID, "Hidden": True})])],
+    )
+    win.On[KICK_EDIT_ID].TextChanged = lambda ev: dispatcher.ExitLoop()
+    return win, win.GetItems()[KICK_EDIT_ID]
+
+
+def build(injected_globals=None):
+    """Connect, build and show the window. Returns an :class:`App` (not running)."""
     conn = resolve_conn.connect(injected_globals=injected_globals)
     api = ResolveAPI(conn)
     features = build_features()
@@ -266,12 +377,12 @@ def main(injected_globals=None):
 
     ctx = AppContext(conn, api)
     remote = remote_mod.RemoteServer()
-    remote.on_started = lambda: conn.dispatcher.ExitLoop()
     ctx.remote = remote
 
     win = _build_window(conn.ui, conn.dispatcher, features)
     ctx.win = win
     ctx.items = win.GetItems()
+    kick_win, kick_edit = _build_kick_window(conn.ui, conn.dispatcher)
 
     nav_tree = ctx.items[NAV_TREE_ID]
     ui_kit.setup_nav_tree(nav_tree, SIDEBAR_WIDTH)
@@ -303,11 +414,10 @@ def main(injected_globals=None):
         except Exception as exc:
             print(f"Conform Sidekick: bind failed for {feature.id}: {exc}")
 
-    closed = {"value": False}
+    app = App(conn, ctx, win, remote, features, kick_win, kick_edit)
 
     def on_close(ev):
-        closed["value"] = True
-        conn.dispatcher.ExitLoop()
+        app.closed = True
 
     win.On[WINDOW_ID].Close = on_close
 
@@ -333,9 +443,8 @@ def main(injected_globals=None):
 
     nav_state["bootstrapping"] = False
     win.On[NAV_TREE_ID].ItemClicked = on_nav_item_clicked
+    return app
 
-    try:
-        _event_loop(conn, remote, lambda: closed["value"])
-    finally:
-        remote.stop()
-        win.Hide()
+
+def main(injected_globals=None):
+    return build(injected_globals=injected_globals).run()

@@ -64,6 +64,33 @@ def overrides_from_query(query):
     return overrides
 
 
+def _text(items, wid):
+    """Read a LineEdit, refusing the None that dead widget proxies return."""
+    value = items[wid].Text
+    if value is None:
+        raise RuntimeError(
+            "the Conform Sidekick window is gone (was Resolve restarted?); "
+            "reopen it from Workspace > Scripts > Utility"
+        )
+    return value
+
+
+def _str(value):
+    return "" if value is None else str(value)
+
+
+# Panel widgets whose edits are saved immediately (see ``bind``).
+SETTING_LINE_EDITS = (
+    "InputIndexSpec",
+    "InputLabelRegex",
+    "OutputIndexSpec",
+    "OutputLabelRegex",
+    "IgnoreLabelRegex",
+    "LayerSpec",
+)
+SETTING_CHECKBOXES = ("IncludeColorGroup", "DryRun")
+
+
 def _row(ui, label, widget):
     return ui.HGroup(
         {"Spacing": 8, "Weight": 0, "MinimumSize": [0, 30]},
@@ -297,12 +324,12 @@ class GradeBypassFeature(LogFeature):
         return ui.VGroup({"Spacing": 8, "Weight": 1}, rows)
 
     def apply_state(self, items, state):
-        items[self.wid("InputIndexSpec")].Text = state["input_index_spec"]
-        items[self.wid("InputLabelRegex")].Text = state["input_label_regex"]
-        items[self.wid("OutputIndexSpec")].Text = state["output_index_spec"]
-        items[self.wid("OutputLabelRegex")].Text = state["output_label_regex"]
-        items[self.wid("IgnoreLabelRegex")].Text = state.get("ignore_label_regex", "")
-        items[self.wid("LayerSpec")].Text = state["layer_spec"]
+        items[self.wid("InputIndexSpec")].Text = _str(state.get("input_index_spec"))
+        items[self.wid("InputLabelRegex")].Text = _str(state.get("input_label_regex"))
+        items[self.wid("OutputIndexSpec")].Text = _str(state.get("output_index_spec"))
+        items[self.wid("OutputLabelRegex")].Text = _str(state.get("output_label_regex"))
+        items[self.wid("IgnoreLabelRegex")].Text = _str(state.get("ignore_label_regex"))
+        items[self.wid("LayerSpec")].Text = _str(state.get("layer_spec"))
         items[self.wid("IncludeColorGroup")].Checked = bool(
             state.get("include_color_group", False)
         )
@@ -311,12 +338,12 @@ class GradeBypassFeature(LogFeature):
     def gather(self, items, restore=False):
         params = {
             "restore": restore,
-            "input_index_spec": items[self.wid("InputIndexSpec")].Text,
-            "input_label_regex": items[self.wid("InputLabelRegex")].Text,
-            "output_index_spec": items[self.wid("OutputIndexSpec")].Text,
-            "output_label_regex": items[self.wid("OutputLabelRegex")].Text,
-            "ignore_label_regex": items[self.wid("IgnoreLabelRegex")].Text,
-            "layer_spec": items[self.wid("LayerSpec")].Text,
+            "input_index_spec": _text(items, self.wid("InputIndexSpec")),
+            "input_label_regex": _text(items, self.wid("InputLabelRegex")),
+            "output_index_spec": _text(items, self.wid("OutputIndexSpec")),
+            "output_label_regex": _text(items, self.wid("OutputLabelRegex")),
+            "ignore_label_regex": _text(items, self.wid("IgnoreLabelRegex")),
+            "layer_spec": _text(items, self.wid("LayerSpec")),
             "include_color_group": bool(
                 items[self.wid("IncludeColorGroup")].Checked
             ),
@@ -444,7 +471,27 @@ class GradeBypassFeature(LogFeature):
         win.On[self.wid("Restore")].Clicked = lambda ev: self.trigger("restore")
         win.On[self.wid("Cancel")].Clicked = lambda ev: on_cancel()
 
+        # Save settings as they are edited, not only when a button is pressed,
+        # so a Resolve crash never loses them.
+        for name in SETTING_LINE_EDITS:
+            win.On[self.wid(name)].TextChanged = lambda ev: self.save_settings()
+        for name in SETTING_CHECKBOXES:
+            win.On[self.wid(name)].Clicked = lambda ev: self.save_settings()
+
         self._bind_remote(ctx)
+
+    def save_settings(self):
+        """Persist the panel's current settings. Returns True when saved."""
+        bound = getattr(self, "_bound", None)
+        if bound is None or bound["store"] is None or self._run.running:
+            return False
+        try:
+            _params, state = self.gather(bound["items"])
+        except Exception as exc:
+            print(f"Conform Sidekick: {self.id} settings not saved: {exc}")
+            return False
+        bound["store"].save(state)
+        return True
 
     # -- running -----------------------------------------------------------
 

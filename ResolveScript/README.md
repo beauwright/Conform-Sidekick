@@ -80,6 +80,14 @@ packages, so they run under any interpreter including Resolve's own:
 python3 ResolveScript/tests/run_tests.py
 ```
 
+One live check needs a running Resolve (external scripting enabled): it builds
+the real window with remote control saved as enabled and proves a UI event is
+delivered, saved on edit, and the listener answers in the same loop:
+
+```bash
+python3 ResolveScript/tests/live_ui_events.py
+```
+
 ### Timecode
 
 All timecode / fps conversions go through `timecode_utils` (the `timecode`
@@ -228,10 +236,19 @@ process the Scripts menu launches:
   while the window idles. No threads are used anywhere in the remote.
 - `ui.Timer` exists and reports `IsActive`, but its `Timeout` event never reaches
   Python, whether hooked via `win.On` or `disp.On`.
-- `UIDispatcher.StepLoop()` is non-blocking and returns in well under a
-  millisecond when idle. While the remote is on, `app._event_loop` swaps
-  `RunLoop` for a `StepLoop` + `remote.poll()` loop (~33 Hz, ~0.1 % CPU idle);
-  with the remote off the proven `RunLoop` path is untouched.
+- `UIDispatcher.StepLoop()` is non-blocking but delivers only one queued message
+  per call, and the full window generates a couple of hundred internal messages
+  per fresh event, so polling it alone leaves clicks undelivered for seconds
+  (the 2.0.0-beta.9/10 "panel is dead while the Stream Deck works" bug).
+- `ExitLoop()` is sticky: called before a `RunLoop` has run, it silences every
+  later `StepLoop()` as well. Nested `RunLoop` calls from inside a handler hang.
+- So `app.event_loop` ticks at ~50 Hz: each tick sets the text of a hidden
+  "kick" widget in a never-shown helper window and calls `RunLoop()`, which
+  drains every pending UI event and returns the moment the kick's own
+  `TextChanged` handler calls `ExitLoop()`; then it serves the remote listener.
+  Every couple of seconds it also checks `GetVersionString()` and exits when
+  Resolve has gone, so a crash never leaves a windowless process holding the
+  remote port (that is what wiped the Bypass Grade settings in beta.10).
 - Requests are accepted with a zero-timeout `select` and answered on the UI
   thread, so a Stream Deck press runs through exactly the same
   `GradeBypassFeature.trigger` path as a button click and the reply carries the
