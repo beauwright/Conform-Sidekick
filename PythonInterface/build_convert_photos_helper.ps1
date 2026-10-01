@@ -11,9 +11,11 @@ if (-not (Get-Command pyinstaller -ErrorAction SilentlyContinue)) {
 
 New-Item -ItemType Directory -Force -Path dist | Out-Null
 
+# --paths: the conversion code is shared with the in-Resolve package.
 pyinstaller convert_photos_cli.py `
     --onefile `
     --clean `
+    --paths ../ResolveScript `
     --name convert_photos_helper-x86_64-pc-windows-msvc.exe
 
 Write-Host ""

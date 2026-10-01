@@ -19,7 +19,8 @@ else
   NAME="convert_photos_helper-x86_64-unknown-linux-gnu"
 fi
 
-pyinstaller convert_photos_cli.py --onefile --clean --name "$NAME"
+# --paths: the conversion code is shared with the in-Resolve package.
+pyinstaller convert_photos_cli.py --onefile --clean --paths ../ResolveScript --name "$NAME"
 
 echo ""
 echo "Built: dist/$NAME"

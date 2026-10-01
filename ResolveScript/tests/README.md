@@ -8,7 +8,9 @@ Python.
 python3 ResolveScript/tests/run_tests.py
 ```
 
-Exits non-zero if anything fails. 54 checks across two suites.
+Exits non-zero if anything fails. 246 checks across nine suites. The one
+exception to "no third-party packages" is `test_odd_res.py`, which needs
+Pillow like the feature it covers and reports `SKIP` without it.
 
 ## Why not pytest
 
@@ -48,12 +50,32 @@ reproduce two behaviours seen on real projects:
   therefore carries `Usage == '0'` while sitting in a fake timeline, so the
   exclusion has to come from the computed usage map or the test fails.
 
+**[`test_lay_clips.py`](test_lay_clips.py)** — Lay Matching Bin Clips against a
+fake timeline and media pool: the Start TC remap, the clamp to the new clip's
+extents, and lay-track occupancy. The rule it pins: when the new clip starts
+later than the range in use (shorter head handles), it is laid that many frames
+later on the record side. Laid at the original record start, every remaining
+frame would land early.
+
+**[`test_odd_res.py`](test_odd_res.py)** — the 1px stretch on real image files
+written to a temp folder. The converted file replaces the original in the
+project, so it must match the source in everything but the extra pixel:
+
+- A JPEG keeps its quantization tables, chroma subsampling, ICC profile, EXIF
+  orientation and DPI. A bare `Image.save()` recompresses at quality 75 / 4:2:0
+  and drops all the metadata.
+- 16-bit RGB(A) is refused, because Pillow has no such mode and hands back
+  8-bit.
+- Big-endian 16-bit greyscale (the usual TIFF byte order) keeps its pixel
+  values. Pillow's resampling filters read `I;16B` as little-endian and
+  scramble it, so the op re-reads the bytes in native order first.
+
 ## Platform note
 
 Assertions on specific local → UTC conversions need a pinned process timezone,
 and `time.tzset()` is Unix-only. On Windows those four checks report `SKIP`
 rather than asserting against whatever zone the machine happens to be in; the
-other 50 run everywhere.
+rest run everywhere.
 
 ## Not included
 

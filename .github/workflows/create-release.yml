@@ -24,11 +24,11 @@ jobs:
           if ($os -eq "windows-latest") {
             New-Item -Path './PythonInterface/dist' -ItemType Directory
             cd ./PythonInterface/
-            pyinstaller even_photos_resolve.py --onefile --name even_photos_resolve-x86_64-pc-windows-msvc.exe
+            pyinstaller even_photos_resolve.py --onefile --paths ../ResolveScript --name even_photos_resolve-x86_64-pc-windows-msvc.exe
           } elseif ($os -eq "macos-12") {
             New-Item -Path './PythonInterface/dist' -ItemType Directory
             cd ./PythonInterface/
-            pyinstaller even_photos_resolve.py --onefile --name even_photos_resolve-x86_64-apple-darwin
+            pyinstaller even_photos_resolve.py --onefile --paths ../ResolveScript --name even_photos_resolve-x86_64-apple-darwin
           }
         shell: pwsh
 

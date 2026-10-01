@@ -449,6 +449,7 @@ def lay_matching_bin_clips(
         "placements": 0,
         "laid": 0,
         "tracks_added": 0,
+        "clamped": 0,
         "range_failures": 0,
         "append_failures": 0,
         "originals_disabled": 0,
@@ -804,21 +805,34 @@ def lay_matching_bin_clips(
             log(f"         {_format_remap(remap)}")
             maybe_pump()
             continue
+        # A head clamp drops the first frames of the requested range, so the
+        # clip must start that many frames later on the record side; laid at
+        # the original record start, every remaining frame would land early.
+        head_trim = fit_start - new_source_start
+        tail_trim = new_source_end - fit_end
+        lay_record_frame = record_frame + head_trim
+        lay_record_end = lay_record_frame + (fit_end - fit_start)
         if fit_status == "clamped":
+            result["clamped"] += 1
             log(
                 f"         [warn] {location}: requested src "
                 f"[{new_source_start}-{new_source_end}] exceeds new clip extents "
-                f"[{extents[0]}-{extents[1]}]; clamped to [{fit_start}-{fit_end}]."
+                f"[{extents[0]}-{extents[1]}]; clamped to [{fit_start}-{fit_end}]. "
+                f"New clip is missing {head_trim}f at the head and {tail_trim}f at "
+                f"the tail, so it covers record [{lay_record_frame}-{lay_record_end}] "
+                "with picture kept in sync."
             )
         new_source_start, new_source_end = fit_start, fit_end
 
-        track_entry = _find_track(record_frame, end_record_frame)
+        # Occupancy is the range the new clip really covers, which differs
+        # from the original's record range when clamped or retimed.
+        track_entry = _find_track(lay_record_frame, lay_record_end)
         if track_entry is None:
             return result
 
         if dry_run:
             result["laid"] += 1
-            track_entry["used"].append((record_frame, end_record_frame))
+            track_entry["used"].append((lay_record_frame, lay_record_end))
             laid_mpi_ids.add(id(mpi))
             log(
                 f"  [PLAN] {location}: '{original_name}' (key='{key}') -> "
@@ -833,7 +847,7 @@ def lay_matching_bin_clips(
             "startFrame": new_source_start,
             "endFrame": new_source_end,
             "trackIndex": track_entry["index"],
-            "recordFrame": record_frame,
+            "recordFrame": lay_record_frame,
         }
         try:
             appended = media_pool.AppendToTimeline([clip_info]) or []
@@ -852,12 +866,12 @@ def lay_matching_bin_clips(
             continue
 
         recovered = _reacquire_appended_tli(
-            timeline, track_entry["index"], record_frame, hint=appended[0]
+            timeline, track_entry["index"], lay_record_frame, hint=appended[0]
         )
         new_tli = recovered if recovered is not None else appended[0]
 
         result["laid"] += 1
-        track_entry["used"].append((record_frame, end_record_frame))
+        track_entry["used"].append((lay_record_frame, lay_record_end))
         laid_mpi_ids.add(id(mpi))
         log(
             f"  [OK]   {location}: '{original_name}' -> '{mpi_name}' "
@@ -990,6 +1004,8 @@ def lay_matching_bin_clips(
     else:
         log(f"  Clips laid:                     {result['laid']} (of {result['placements']} planned)")
         log(f"  New tracks added:               {result['tracks_added']}")
+    if result["clamped"]:
+        log(f"  Laid short (missing handles):   {result['clamped']}")
     if result["range_failures"]:
         log(f"  Source-range failures:          {result['range_failures']}")
     if result["append_failures"]:
