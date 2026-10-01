@@ -22,6 +22,7 @@ MODULES = (
     "test_state",
     "test_app_loop",
     "test_grade_bypass_ops",
+    "test_bin_bookmarks",
 )
 
 

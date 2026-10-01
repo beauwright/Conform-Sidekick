@@ -13,12 +13,14 @@ from .bulk_node_enable import BulkNodeEnableFeature
 from .grade_bypass import GradeBypassFeature
 from .version_audit import VersionAuditFeature
 from .source_tc import SourceTcFeature
+from .bin_bookmarks import BinBookmarksFeature
 
 # (category_id, label shown on the category button)
 CATEGORIES = (
     ("conform", "Conform"),
     ("edit", "Edit"),
     ("color", "Color"),
+    ("media", "Media Pool"),
 )
 
 
@@ -33,6 +35,7 @@ def build_features():
         LayMatchingClipsFeature(),
         BulkNodeEnableFeature(),
         GradeBypassFeature(),
+        BinBookmarksFeature(),
     ]
 
 

@@ -368,7 +368,7 @@ def get_tree_current_item(tree):
 
 
 def populate_nav_tree(tree, grouped, sidebar_width=440, key_by_label=None):
-    """Fill the sidebar: Conform / Edit / Color parents with mode children.
+    """Fill the sidebar: category parents (Conform, Edit, ...) with mode children.
 
     ``grouped`` is the list from :func:`features.features_by_category`. Row keys
     (feature id or ``@<category_id>``) are stored in ``key_by_label`` by the

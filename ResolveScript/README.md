@@ -7,7 +7,7 @@ This branch replaces the Tauri (Rust + React/TypeScript) desktop app with a
 It also folds in three additional features ported from the
 `davinci-resolve-scripts` repo (Rename Clips From Markers, Lay Matching Bin
 Clips, Bulk Enable/Disable Color Nodes), so all nine tools live behind one
-window with a sidebar navigator.
+window with a sidebar navigator. A tenth, Bin Bookmarks, was added later.
 
 ## Requirements
 
@@ -147,9 +147,19 @@ snapshot of prior values — it writes `00:00:00:00` back. Only the set of chang
 clips is recorded, per project, in the feature's `StateStore`; that record is
 **install-local** and does not follow the project to another workstation.
 
+### Bin Bookmarks
+
+`Media Pool → Bin Bookmarks` keeps a per-project list of bins; clicking a row
+calls `MediaPool.SetCurrentFolder()` so the media pool jumps straight there.
+Bookmarks are keyed on `Folder.GetUniqueId()` (stable through renames and
+moves, verified on Resolve Studio 21.0.4) with the bin path as a fallback, and
+are stored per project id in the feature's `StateStore` — **install-local**,
+like the Source TC revert record. The API has no find-by-id, so the bin tree is
+walked on each action; that reads no clip lists and took 35 ms for 62 bins.
+
 ## Status
 
-- ✅ All nine tools implemented and verified on Resolve Studio.
+- ✅ All ten tools implemented and verified on Resolve Studio.
 - ✅ Responsive/cancellable project & timeline scans; sidebar navigation.
 - ⚠️ **Fix Odd Resolution Photos** — run the installer so Pillow is pip-installed
   into Resolve's Python (see `installer/README.md`).

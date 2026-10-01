@@ -1,6 +1,6 @@
 """Conform Sidekick application window.
 
-Split layout: a left sidebar ``Tree`` lists categories (Conform / Edit / Color)
+Split layout: a left sidebar ``Tree`` lists categories (Conform / Edit / Color / Media Pool)
 and their modes; the main area shows the active feature panel. Switching modes
 hides all panels except the selected one.
 

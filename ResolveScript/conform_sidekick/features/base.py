@@ -30,7 +30,7 @@ class Feature:
 
     id = ""
     title = ""
-    # Nav grouping: ``conform``, ``edit``, or ``color`` (see ``features.CATEGORIES``).
+    # Nav grouping: ``conform``, ``edit``, ``color``, or ``media`` (see ``features.CATEGORIES``).
     category = "conform"
 
     def wid(self, name: str) -> str:

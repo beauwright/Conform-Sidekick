@@ -147,6 +147,17 @@ CHECK_SOURCE_TC_INCLUDE_IN_TIMELINE = (
 )
 SOURCE_TC_NO_PROJECT = "Open a project in Resolve first."
 
+BIN_BOOKMARKS_INTRO = (
+    "Bookmark the bins you keep coming back to, then click one in the list to send the\n"
+    "media pool straight to it. Open a bin in Resolve and click Bookmark Current Bin to add it.\n"
+    "Bookmarks are kept per project on this workstation and follow a bin if it is renamed or moved."
+)
+BTN_BOOKMARK_CURRENT_BIN = "Bookmark Current Bin"
+BIN_BOOKMARKS_EMPTY = (
+    "No bookmarks in this project yet. Open a bin in Resolve, then click Bookmark Current Bin."
+)
+BIN_BOOKMARKS_MISSING_SUFFIX = "  (bin not found)"
+
 
 def scope_area_label(scope: str) -> str:
     """Human label for status messages ('project' or 'timeline' scope key)."""
