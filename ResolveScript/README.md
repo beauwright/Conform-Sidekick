@@ -157,6 +157,10 @@ are stored per project id in the feature's `StateStore` — **install-local**,
 like the Source TC revert record. The API has no find-by-id, so the bin tree is
 walked on each action; that reads no clip lists and took 35 ms for 62 bins.
 
+A bookmark can be given one of Resolve's 16 clip colors, which tints its row.
+The color is picked in the panel and stored with the bookmark: `Folder` has no
+call that returns a bin's color tag, so it cannot mirror the tag set in Resolve.
+
 ## Status
 
 - ✅ All ten tools implemented and verified on Resolve Studio.

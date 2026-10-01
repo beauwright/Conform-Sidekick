@@ -14,7 +14,8 @@ from ..ops import bin_bookmarks as bb
 from ..state import StateStore
 
 DEFAULTS = {
-    # project unique id -> [{"id": bin unique id, "path": "/FOOTAGE/Day 01"}, ...]
+    # project unique id -> [{"id": bin unique id, "path": "/FOOTAGE/Day 01",
+    #                        "color": "Teal" (optional)}, ...]
     "by_project": {},
 }
 
@@ -28,6 +29,21 @@ ID_COLUMN = 2
 # UIManager occasionally delivers a click twice; a repeated Move would shift
 # the bookmark two rows.
 REPEAT_GUARD_SECS = 0.15
+
+COLOR_CHOICES = [us.BIN_BOOKMARKS_NO_COLOR] + bb.COLORS
+# Rows are tinted, not filled: the color is mixed into the tree's dark
+# background so the default light text stays readable on every swatch.
+TINT_BASE = (40, 40, 46)
+TINT_STRENGTH = 0.5
+
+
+def _tint(color):
+    rgb = bb.COLOR_RGB[color]
+    mixed = [
+        (base + (channel - base) * TINT_STRENGTH) / 255.0
+        for base, channel in zip(TINT_BASE, rgb)
+    ]
+    return {"R": mixed[0], "G": mixed[1], "B": mixed[2], "A": 1.0}
 
 
 def _project_key(project):
@@ -109,6 +125,10 @@ class BinBookmarksFeature(Feature):
                             {"ID": self.wid("Remove"), "Text": "Remove Bookmark",
                              "Enabled": False, "MinimumSize": [130, 0]},
                         ),
+                        ui.ComboBox(
+                            {"ID": self.wid("Color"), "Enabled": False,
+                             "Weight": 0, "MinimumSize": [120, 0]}
+                        ),
                         ui.HGap(0, 1.0),
                     ],
                 ),
@@ -176,7 +196,10 @@ class BinBookmarksFeature(Feature):
         tree = items[self.wid("Tree")]
         status = items[self.wid("Status")]
         selected_label = items[self.wid("Selected")]
+        color_combo = items[self.wid("Color")]
         ui_kit.setup_tree(tree, COLUMNS, COLUMN_WIDTHS)
+        for choice in COLOR_CHOICES:
+            color_combo.AddItem(choice)
 
         def set_status(text):
             try:
@@ -191,8 +214,12 @@ class BinBookmarksFeature(Feature):
                 selected_label.Text = (
                     bb.bin_name(bookmark["path"]) if bookmark else "—"
                 )
-                for name in ("Up", "Down", "Remove"):
+                for name in ("Up", "Down", "Remove", "Color"):
                     items[self.wid(name)].Enabled = bookmark is not None
+                color = bookmark.get("color", "") if bookmark else ""
+                color_combo.CurrentIndex = (
+                    COLOR_CHOICES.index(color) if color in bb.COLORS else 0
+                )
             except Exception:
                 pass
 
@@ -205,6 +232,10 @@ class BinBookmarksFeature(Feature):
                 item = ui_kit.add_row(tree, [bb.bin_name(bookmark["path"]), location])
                 try:
                     item.Text[ID_COLUMN] = bookmark["id"]
+                    if bookmark.get("color") in bb.COLOR_RGB:
+                        tint = _tint(bookmark["color"])
+                        for column in range(len(COLUMNS)):
+                            item.BackgroundColor[column] = tint
                     if bookmark["id"] == self._selected_id:
                         item.Selected = True
                 except Exception:
@@ -302,12 +333,26 @@ class BinBookmarksFeature(Feature):
         def on_remove():
             edit_selected(bb.remove, "Removed the bookmark for {path}.")
 
+        def on_color():
+            try:
+                index = int(color_combo.CurrentIndex)
+            except Exception:
+                return
+            color = COLOR_CHOICES[index] if 0 < index < len(COLOR_CHOICES) else ""
+            bookmark = self._bookmark(self._selected_id)
+            # Also fires when set_selected points the dropdown at a bookmark;
+            # that lands here with the color it already has.
+            if bookmark is None or bookmark.get("color", "") == color:
+                return
+            edit_selected(lambda marks, uid: bb.set_color(marks, uid, color), None)
+
         self._refresh = refresh
         win.On[self.wid("Add")].Clicked = lambda ev: on_add()
         win.On[self.wid("Refresh")].Clicked = lambda ev: refresh()
         win.On[self.wid("Up")].Clicked = lambda ev: on_move(-1)
         win.On[self.wid("Down")].Clicked = lambda ev: on_move(1)
         win.On[self.wid("Remove")].Clicked = lambda ev: on_remove()
+        win.On[self.wid("Color")].CurrentIndexChanged = lambda ev: on_color()
         # ItemClicked only: CurrentItemChanged also fires when the list is
         # rebuilt, which would move the media pool without a click.
         win.On[self.wid("Tree")].ItemClicked = on_go

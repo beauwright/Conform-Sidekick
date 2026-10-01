@@ -11,11 +11,46 @@ Verified against Resolve Studio 21.0.4:
 * There is no "find folder by id" call, so the bin tree is walked each time.
   That is cheap (62 bins in 35 ms) because no clip lists are read.
 
+* ``Folder`` has no color call (documented or otherwise), so a bin's color tag
+  cannot be read. A bookmark's color is therefore one the user picks in the
+  panel; it does not follow the bin's tag in Resolve.
+
 Everything here is UI-agnostic: bookmarks are plain ``{"id", "path"}`` dicts in
-display order, and the functions that change the list return a new one.
+display order (plus ``"color"`` when one is set), and the functions that change
+the list return a new one.
 """
 
+from ..timeline_filters import CLIP_COLORS
+
 ROOT_PATH = "/"
+
+# Resolve's clip color names -> approximate RGB of the swatch Resolve draws.
+COLOR_RGB = {
+    "Orange": (235, 110, 1),
+    "Apricot": (255, 168, 51),
+    "Yellow": (226, 169, 28),
+    "Lime": (159, 198, 21),
+    "Olive": (94, 153, 32),
+    "Green": (68, 143, 101),
+    "Teal": (0, 152, 153),
+    "Navy": (21, 98, 132),
+    "Blue": (67, 118, 161),
+    "Purple": (153, 115, 160),
+    "Violet": (208, 86, 141),
+    "Pink": (233, 140, 181),
+    "Tan": (185, 175, 151),
+    "Beige": (198, 160, 119),
+    "Brown": (153, 102, 0),
+    "Chocolate": (140, 90, 63),
+}
+COLORS = [name for name in CLIP_COLORS if name in COLOR_RGB]
+
+
+def _mark(uid, path, color=""):
+    mark = {"id": uid, "path": path}
+    if color in COLOR_RGB:
+        mark["color"] = color
+    return mark
 
 
 def _call(obj, method, default=None):
@@ -84,7 +119,7 @@ def refresh(bookmarks, bins):
     """Re-resolve every bookmark against the live bin tree.
 
     Returns ``(bookmarks, missing_ids)``: bookmarks whose bin was found carry
-    its current id and path; the ones that were not are kept untouched (the bin
+    its current id and path (and keep their color); the ones that were not are kept untouched (the bin
     may be back after an undo) and reported in ``missing_ids``.
     """
     by_id, by_path = index_bins(bins)
@@ -96,7 +131,8 @@ def refresh(bookmarks, bins):
             missing.add(bookmark.get("id") or "")
             continue
         folder, path = found
-        out.append({"id": folder_id(folder) or bookmark.get("id") or "", "path": path})
+        out.append(_mark(folder_id(folder) or bookmark.get("id") or "", path,
+                         bookmark.get("color")))
     return out, missing
 
 
@@ -110,7 +146,7 @@ def clean(raw):
         if not uid or not path or uid in seen:
             continue
         seen.add(uid)
-        out.append({"id": uid, "path": path})
+        out.append(_mark(uid, path, entry.get("color")))
     return out
 
 
@@ -123,6 +159,14 @@ def add(bookmarks, uid, path):
 
 def remove(bookmarks, uid):
     return [b for b in bookmarks if b["id"] != uid]
+
+
+def set_color(bookmarks, uid, color):
+    """Tag a bookmark with one of :data:`COLORS`; anything else clears it."""
+    return [
+        _mark(b["id"], b["path"], color if b["id"] == uid else b.get("color"))
+        for b in bookmarks
+    ]
 
 
 def move(bookmarks, uid, delta):

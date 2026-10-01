@@ -74,6 +74,16 @@ def run():
     r.check("move past the end is a no-op", bb.move(marks, "r", 1), marks)
     r.check("remove", [b["id"] for b in bb.remove(marks, "s")], ["d2", "r"])
 
+    r.section("colors")
+    tinted = bb.set_color(marks, "s", "Teal")
+    r.check("set", tinted[1], {"id": "s", "path": "/_SEQ", "color": "Teal"})
+    r.check("others untouched", [tinted[0], tinted[2]], [marks[0], marks[2]])
+    r.check("survives a refresh", bb.refresh(tinted, bins)[0][1].get("color"), "Teal")
+    r.check("survives a move", bb.move(tinted, "s", -1)[0].get("color"), "Teal")
+    r.check("cleared", bb.set_color(tinted, "s", ""), marks)
+    r.check("unknown name clears", bb.set_color(tinted, "s", "Mauve"), marks)
+    r.check("every color has a swatch", [c for c in bb.COLORS if c not in bb.COLOR_RGB], [])
+
     r.section("go to")
     r.check("jumps", bb.go_to(pool, marks[1]), (True, "/_SEQ"))
     r.check("media pool moved", pool.current is seq, True)
@@ -111,6 +121,10 @@ def run():
             bb.clean([{"id": "a", "path": "/A"}, "x", {"id": "", "path": "/B"},
                       {"id": "a", "path": "/A2"}, {"id": "c"}]),
             [{"id": "a", "path": "/A"}])
+    r.check("color kept, junk color dropped",
+            bb.clean([{"id": "a", "path": "/A", "color": "Pink"},
+                      {"id": "b", "path": "/B", "color": "Mauve"}]),
+            [{"id": "a", "path": "/A", "color": "Pink"}, {"id": "b", "path": "/B"}])
     return r.summary()
 
 
