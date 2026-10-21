@@ -15,6 +15,7 @@ from .version_audit import VersionAuditFeature
 from .source_tc import SourceTcFeature
 from .bin_bookmarks import BinBookmarksFeature
 from .avid_lut_groups import AvidLutGroupsFeature
+from .recolor_markers import RecolorMarkersFeature
 
 # (category_id, label shown on the category button)
 CATEGORIES = (
@@ -33,6 +34,7 @@ def build_features():
         VersionAuditFeature(),
         SourceTcFeature(),
         RenameFromMarkersFeature(),
+        RecolorMarkersFeature(),
         LayMatchingClipsFeature(),
         BulkNodeEnableFeature(),
         GradeBypassFeature(),

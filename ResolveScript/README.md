@@ -45,10 +45,12 @@ Application Support/Conform Sidekick/   # outside Resolve's Scripts tree
       interlaced.py / compound_clips.py / odd_res_photos.py
       rename_from_markers.py / lay_matching_clips.py / bulk_node_enable.py
       avid_lut_groups.py                # Avid bin LUT -> existing color groups
+      recolor_markers.py                # change markers of one color to another
     ops/
       odd_res.py                        # 1px stretch (Pillow in Resolve's Python)
       source_tc.py                      # invent source TC from Date Created
       avid_lut_groups.py                # read .avb, match clips, assign groups
+      recolor_markers.py                # delete + re-add markers in a new color
     _vendor/timecode/                   # vendored pure-Python dependency
     _vendor/avb/                        # vendored pyavb (MIT) for reading .avb bins
     _vendor/tzdata/                     # vendored IANA tz database (Windows)

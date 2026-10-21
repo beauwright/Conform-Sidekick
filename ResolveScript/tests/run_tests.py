@@ -26,6 +26,7 @@ MODULES = (
     "test_lay_clips",
     "test_odd_res",
     "test_avid_lut_groups",
+    "test_recolor_markers",
 )
 
 

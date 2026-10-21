@@ -20,6 +20,8 @@
 
 - **Color Groups from Avid LUTs**: Load an Avid bin (`.avb`), map each shot LUT logged in it (a custom LUT column, the camera's LUT, or both in either priority) to one of your existing color groups, and assign the timeline's clips to those groups. Clips are matched by camera file name, camera roll or clip name; clips already in a color group are never moved. Unmapped LUTs can optionally get a new, empty group named after the LUT.
 
+- **Recolor Markers**: Change every marker of one color (or of any color) to another, on the timeline ruler and/or on the timeline's clips, optionally limited to the In/Out range and to chosen tracks. Name, note, duration and custom data are kept; preview first with a dry run.
+
 - **Bypass Grade from a Stream Deck**: The Bypass Grade mode (Resolve-native edition) can be driven by a Stream Deck or any HTTP client without touching Resolve's keyboard shortcuts. Enable remote control in the panel and drag the generated launcher files onto a Stream Deck "System: Open" action.
 
 ## Compatibility and Use
