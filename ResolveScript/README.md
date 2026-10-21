@@ -44,10 +44,13 @@ Application Support/Conform Sidekick/   # outside Resolve's Scripts tree
       log_feature.py                    # form + log + Run/Cancel
       interlaced.py / compound_clips.py / odd_res_photos.py
       rename_from_markers.py / lay_matching_clips.py / bulk_node_enable.py
+      avid_lut_groups.py                # Avid bin LUT -> existing color groups
     ops/
       odd_res.py                        # 1px stretch (Pillow in Resolve's Python)
       source_tc.py                      # invent source TC from Date Created
+      avid_lut_groups.py                # read .avb, match clips, assign groups
     _vendor/timecode/                   # vendored pure-Python dependency
+    _vendor/avb/                        # vendored pyavb (MIT) for reading .avb bins
     _vendor/tzdata/                     # vendored IANA tz database (Windows)
   tests/                                # offline tests (no Resolve required)
   helpers/                              # optional legacy PyInstaller image helper
@@ -61,8 +64,8 @@ lives in `Utility/`. The package is installed under Application Support (see
 ### Dependencies
 
 1. **In-Resolve script** — runs in Resolve's bundled Python. Pure-Python deps are
-   **vendored** as source (`_vendor/timecode`, `_vendor/tzdata`) so nothing requires
-   `pip` for timecode math or timezone conversion. `tzdata` is needed only because
+   **vendored** as source (`_vendor/timecode`, `_vendor/tzdata`, `_vendor/avb`) so
+   nothing requires `pip` for timecode math, timezone conversion or reading Avid bins. `tzdata` is needed only because
    Windows ships no IANA database, so `zoneinfo.ZoneInfo("America/Denver")` raises
    there without it; macOS and Linux would resolve zones from the system database.
 2. **Fix Odd Resolution Photos** — needs **Pillow** (+ **pillow_heif** for HEIC)

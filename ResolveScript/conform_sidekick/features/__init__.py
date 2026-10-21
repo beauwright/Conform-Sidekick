@@ -14,6 +14,7 @@ from .grade_bypass import GradeBypassFeature
 from .version_audit import VersionAuditFeature
 from .source_tc import SourceTcFeature
 from .bin_bookmarks import BinBookmarksFeature
+from .avid_lut_groups import AvidLutGroupsFeature
 
 # (category_id, label shown on the category button)
 CATEGORIES = (
@@ -35,6 +36,7 @@ def build_features():
         LayMatchingClipsFeature(),
         BulkNodeEnableFeature(),
         GradeBypassFeature(),
+        AvidLutGroupsFeature(),
         BinBookmarksFeature(),
     ]
 

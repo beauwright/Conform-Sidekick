@@ -25,6 +25,7 @@ MODULES = (
     "test_bin_bookmarks",
     "test_lay_clips",
     "test_odd_res",
+    "test_avid_lut_groups",
 )
 
 
